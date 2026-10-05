@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b4f5c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>Terrain Kaliforage</title>
+<style>
+:root{--fond:#f4f6f5;--encre:#0d1b1e;--bleu:#0b4f5c;--vert:#1f8a4c;--orange:#d9730d;--rouge:#b3261e;--gris:#c9d2d0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--fond);color:var(--encre);font-family:Roboto,"Segoe UI",system-ui,sans-serif;overscroll-behavior:none;user-select:none}
+.ecran{display:none;flex-direction:column;min-height:100%}
+.ecran.actif{display:flex}
+header{background:var(--bleu);color:#fff;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top))}
+header .petit{font-size:15px;opacity:.85;letter-spacing:.04em;text-transform:uppercase}
+header .titre{font-size:26px;font-weight:800;line-height:1.15;margin-top:2px;word-break:break-word}
+main{flex:1;padding:12px;display:flex;flex-direction:column;gap:12px}
+button{font:inherit;border:0;border-radius:16px;color:#fff;background:var(--bleu);font-weight:800;font-size:24px;min-height:96px;padding:12px;width:100%;touch-action:manipulation}
+button:active{filter:brightness(.8)}
+.grille{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tuile{min-height:128px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;line-height:1.1}
+.tuile .nb{font-size:17px;font-weight:600;opacity:.9}
+.tuile.fait{background:var(--vert)}
+.tuile.ajout{background:#fff;color:var(--bleu);border:4px dashed var(--bleu)}
+.large{grid-column:1/-1}
+.envoyer{background:var(--orange);min-height:110px;font-size:28px}
+.secondaire{background:#fff;color:var(--bleu);border:3px solid var(--bleu)}
+.danger{background:#fff;color:var(--rouge);border:3px solid var(--rouge);font-size:19px;min-height:72px}
+.discret{background:transparent;color:var(--bleu);font-size:18px;min-height:60px;text-decoration:underline}
+input[type=text]{font:inherit;font-size:24px;font-weight:700;padding:18px;border:3px solid var(--bleu);border-radius:16px;width:100%;text-transform:uppercase;user-select:text}
+p{margin:0;font-size:19px;line-height:1.35}
+.note{background:#fff;border-left:8px solid var(--orange);border-radius:10px;padding:14px;font-size:19px}
+.note.ok{border-left-color:var(--vert)}
+.ligne{display:flex;justify-content:space-between;align-items:center;font-size:20px;padding:10px 4px;border-bottom:2px solid var(--gris)}
+.ligne b{font-size:22px}
+.manque{color:var(--rouge);font-weight:800}
+/* caméra */
+#camera{background:#000;color:#fff;height:100%;position:fixed;inset:0}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#camHaut{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px;padding-top:calc(12px + env(safe-area-inset-top));background:linear-gradient(#000c,#0000);z-index:2}
+#camHaut .cat{font-size:30px;font-weight:900}
+#camHaut .cpt{font-size:22px;font-weight:800;background:var(--vert);border-radius:999px;padding:6px 16px}
+#declencheur{position:absolute;left:0;right:0;bottom:120px;top:45%;background:transparent;border-radius:0;z-index:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18px}
+#declencheur span{width:120px;height:120px;border-radius:50%;border:8px solid #fff;background:#ffffff55;display:block}
+#camBas{position:absolute;left:0;right:0;bottom:0;height:120px;display:flex;gap:10px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#000;z-index:2}
+#camBas button{min-height:0;height:100%;font-size:21px}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3;transition:opacity .25s}
+#flash.on{opacity:.85;transition:none}
+#vignette{position:absolute;right:12px;top:90px;width:84px;height:84px;object-fit:cover;border:3px solid #fff;border-radius:10px;z-index:2;display:none}
+</style>
+</head>
+<body>
+
+<!-- ACCUEIL -->
+<section class="ecran" id="accueil">
+  <header><div class="petit">Kaliforage</div><div class="titre">Chantiers</div></header>
+  <main>
+    <div id="listeChantiers" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div class="note" id="aideLien">Pour ouvrir un chantier, touchez le lien dans l'agenda. Sinon, tapez son nom ci-dessous.</div>
+    <input type="text" id="nomChantier" placeholder="156 LES ORBES" autocomplete="off" autocapitalize="characters">
+    <button id="btnNouveau">OUVRIR CE CHANTIER</button>
+    <p id="version" style="text-align:center;font-size:14px;opacity:.6"></p>
+  </main>
+</section>
+
+<!-- CHANTIER -->
+<section class="ecran" id="chantier">
+  <header><div class="petit" id="chDate"></div><div class="titre" id="chNom"></div></header>
+  <main>
+    <div class="grille" id="grille"></div>
+    <button class="envoyer" id="btnFin">CHANTIER TERMINÉ</button>
+    <button class="discret" id="btnRetourAccueil">Autres chantiers</button>
+  </main>
+</section>
+
+<!-- CAMÉRA -->
+<section class="ecran" id="camera">
+  <video id="video" playsinline autoplay muted></video>
+  <div id="flash"></div>
+  <img id="vignette" alt="">
+  <div id="camHaut"><span class="cat" id="camCat"></span><span class="cpt" id="camCpt">0</span></div>
+  <button id="declencheur" aria-label="Prendre la photo"><span></span></button>
+  <div id="camBas">
+    <button class="danger" id="btnEffacer" style="flex:1">EFFACER LA DERNIÈRE</button>
+    <button id="btnCamRetour" style="flex:1;background:var(--vert)">TERMINÉ</button>
+  </div>
+</section>
+
+<!-- ENVOI -->
+<section class="ecran" id="envoi">
+  <header><div class="petit">Fin de chantier</div><div class="titre" id="envNom"></div></header>
+  <main>
+    <div id="recap"></div>
+    <div class="note" id="envNote"></div>
+    <button class="envoyer" id="btnPartager">ENVOYER</button>
+    <button class="secondaire" id="btnZip">ENREGISTRER LE DOSSIER DANS LE TÉLÉPHONE</button>
+    <button class="secondaire" id="btnEnvRetour">RETOUR AU CHANTIER</button>
+    <button class="danger" id="btnSupprimer">EFFACER CE CHANTIER DU TÉLÉPHONE</button>
+  </main>
+</section>
+
+<input type="file" id="fichierPhoto" accept="image/*" capture="environment" hidden>
+<input type="file" id="fichierGalerie" accept="image/*" multiple hidden>
+
+<script>
+'use strict';
+const VERSION = '1.0';
+const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
+const TAILLE_MAX = 2048, QUALITE = 0.82;
+// Catégories fixes : code de fichier, libellé, dossier dans l'archive
+const FIXES = [
+  {code:'SITE',  nom:'VUE DU SITE',    dossier:'Site'},
+  {code:'PANO',  nom:'PANORAMA',       dossier:'Panoramas', galerie:true},
+  {code:'FICHE', nom:'FICHE CHANTIER', dossier:'Fiche chantier'}
+];
+const $ = id => document.getElementById(id);
+let bd, chantierCourant = null, catCourante = null, flux = null, fichiersPrets = null;
+
+/* ---------- Base de données locale ---------- */
+function ouvrirBD(){
+  return new Promise((ok, ko) => {
+    const r = indexedDB.open('terrain', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('chantiers', {keyPath:'id'});
+      d.createObjectStore('photos', {keyPath:'id', autoIncrement:true}).createIndex('chantier', 'chantier');
+    };
+    r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+  });
+}
+function req(magasin, mode, fn){
+  return new Promise((ok, ko) => {
+    const t = bd.transaction(magasin, mode), r = fn(t.objectStore(magasin));
+    t.oncomplete = () => ok(r && r.result); t.onerror = t.onabort = () => ko(t.error);
+  });
+}
+const tousChantiers = () => req('chantiers', 'readonly', s => s.getAll());
+const sauverChantier = c => req('chantiers', 'readwrite', s => s.put(c));
+const photosDe = id => req('photos', 'readonly', s => s.index('chantier').getAll(id));
+
+/* ---------- Outils ---------- */
+const z2 = n => String(n).padStart(2, '0');
+function dateFR(iso){ const d = new Date(iso); return z2(d.getDate()) + '/' + z2(d.getMonth()+1) + '/' + d.getFullYear(); }
+function dateCompacte(iso){ const d = new Date(iso); return '' + d.getFullYear() + z2(d.getMonth()+1) + z2(d.getDate()); }
+function nettoyer(nom){ return nom.toUpperCase().replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim(); }
+// « 156 LES ORBES » -> « 156_LES-ORBES »
+function prefixe(nom){ const i = nom.indexOf(' '); return i < 0 ? nom : nom.slice(0, i) + '_' + nom.slice(i+1).replace(/ /g, '-'); }
+function infoCat(code){
+  const f = FIXES.find(x => x.code === code); if (f) return f;
+  if (code.startsWith('TR')) return {code, nom:'TARIÈRE ' + code.slice(2), dossier:'Tarières/' + code};
+  return {code, nom:'PÉNÉTRO ' + code.slice(1), dossier:'Pénétros/' + code};
+}
+function montrer(id){ document.querySelectorAll('.ecran').forEach(e => e.classList.toggle('actif', e.id === id)); window.scrollTo(0, 0); }
+function vibrer(){ if (navigator.vibrate) navigator.vibrate(40); }
+
+/* ---------- Accueil ---------- */
+async function afficherAccueil(){
+  chantierCourant = null;
+  const liste = (await tousChantiers()).sort((a, b) => b.date.localeCompare(a.date));
+  const zone = $('listeChantiers'); zone.innerHTML = '';
+  for (const c of liste){
+    const b = document.createElement('button');
+    b.className = 'tuile' + (c.envoye ? ' fait' : '');
+    b.innerHTML = '<span></span><span class="nb"></span>';
+    b.firstChild.textContent = c.nom;
+    b.lastChild.textContent = dateFR(c.date) + (c.envoye ? ' · envoyé' : ' · en cours');
+    b.onclick = () => ouvrirChantier(c);
+    zone.appendChild(b);
+  }
+  $('version').textContent = 'Version ' + VERSION;
+  montrer('accueil');
+}
+async function creerOuOuvrir(nomBrut, lienPlan){
+  const nom = nettoyer(nomBrut); if (!nom) return;
+  const liste = await tousChantiers();
+  let c = liste.find(x => x.nom === nom && !x.envoye) || liste.find(x => x.nom === nom);
+  if (!c){
+    c = {id: Date.now().toString(36), nom, date: new Date().toISOString(), tarieres:0, penetros:0, envoye:false};
+  }
+  if (lienPlan) c.plan = lienPlan;
+  await sauverChantier(c);
+  ouvrirChantier(c);
+}
+$('btnNouveau').onclick = () => { creerOuOuvrir($('nomChantier').value); $('nomChantier').value = ''; };
+
+/* ---------- Écran chantier ---------- */
+async function ouvrirChantier(c){
+  chantierCourant = c; fichiersPrets = null;
+  $('chNom').textContent = c.nom; $('chDate').textContent = 'Chantier du ' + dateFR(c.date);
+  const photos = await photosDe(c.id), nb = {};
+  photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
+  const g = $('grille'); g.innerHTML = '';
+  const tuile = (code, cls) => {
+    const i = infoCat(code), b = document.createElement('button'), n = nb[code] || 0;
+    b.className = 'tuile ' + (cls || '') + (n ? ' fait' : '');
+    b.innerHTML = '<span></span><span class="nb"></span>';
+    b.firstChild.textContent = i.nom;
+    b.lastChild.textContent = n ? n + ' photo' + (n > 1 ? 's' : '') : 'aucune photo';
+    b.onclick = () => i.galerie ? choisirGalerie(code) : ouvrirCamera(code);
+    g.appendChild(b);
+  };
+  const ajout = (texte, champ) => {
+    const b = document.createElement('button'); b.className = 'tuile ajout'; b.textContent = texte;
+    b.onclick = async () => { c[champ]++; await sauverChantier(c); vibrer(); ouvrirCamera((champ === 'tarieres' ? 'TR' : 'P') + c[champ]); };
+    g.appendChild(b);
+  };
+  tuile('SITE'); tuile('PANO');
+  for (let i = 1; i <= c.tarieres; i++) tuile('TR' + i);
+  ajout('+ TARIÈRE', 'tarieres');
+  for (let i = 1; i <= c.penetros; i++) tuile('P' + i);
+  ajout('+ PÉNÉTRO', 'penetros');
+  tuile('FICHE', 'large');
+  montrer('chantier');
+}
+$('btnRetourAccueil').onclick = afficherAccueil;
+
+/* ---------- Enregistrement d'une photo ---------- */
+async function reduire(source){
+  const img = await createImageBitmap(source);
+  const k = Math.min(1, TAILLE_MAX / Math.max(img.width, img.height));
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+  if (img.close) img.close();
+  return new Promise(ok => cv.toBlob(ok, 'image/jpeg', QUALITE));
+}
+async function enregistrer(source, cat){
+  const blob = await reduire(source);
+  const photos = (await photosDe(chantierCourant.id)).filter(p => p.cat === cat);
+  const n = photos.reduce((m, p) => Math.max(m, p.n), 0) + 1;
+  const nom = prefixe(chantierCourant.nom) + '_' + cat + '_' + z2(n) + '.jpg';
+  await req('photos', 'readwrite', s => s.add({chantier: chantierCourant.id, cat, n, nom, heure: new Date().toISOString(), blob}));
+  if (chantierCourant.envoye){ chantierCourant.envoye = false; await sauverChantier(chantierCourant); }
+  return {blob, total: photos.length + 1};
+}
+
+/* ---------- Caméra ---------- */
+async function majCompteur(){
+  const p = (await photosDe(chantierCourant.id)).filter(x => x.cat === catCourante).sort((a, b) => a.n - b.n);
+  $('camCpt').textContent = p.length;
+  const v = $('vignette');
+  if (v.src) URL.revokeObjectURL(v.src);
+  if (p.length){ v.src = URL.createObjectURL(p[p.length - 1].blob); v.style.display = 'block'; } else { v.removeAttribute('src'); v.style.display = 'none'; }
+  $('btnEffacer').textContent = p.length ? 'EFFACER LA DERNIÈRE' : (estDernierSondage() ? 'ANNULER CE SONDAGE' : 'EFFACER LA DERNIÈRE');
+  return p;
+}
+function estDernierSondage(){
+  const c = chantierCourant;
+  return catCourante === 'TR' + c.tarieres || catCourante === 'P' + c.penetros;
+}
+async function ouvrirCamera(code){
+  catCourante = code; $('camCat').textContent = infoCat(code).nom;
+  try {
+    flux = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}});
+  } catch (e) { flux = null; }
+  if (!flux){ $('fichierPhoto').click(); return; }   // secours : appareil photo du téléphone
+  $('video').srcObject = flux;
+  await majCompteur();
+  montrer('camera');
+  if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {});
+}
+function fermerCamera(){
+  if (flux){ flux.getTracks().forEach(t => t.stop()); flux = null; }
+  $('video').srcObject = null;
+  ouvrirChantier(chantierCourant);
+}
+let enCours = false;
+$('declencheur').onclick = async () => {
+  if (enCours || !flux) return; enCours = true;
+  const f = $('flash'); f.classList.add('on'); vibrer(); setTimeout(() => f.classList.remove('on'), 60);
+  try {
+    let source = null;
+    const piste = flux.getVideoTracks()[0];
+    if (window.ImageCapture){
+      try { source = await Promise.race([new ImageCapture(piste).takePhoto(), new Promise((_, ko) => setTimeout(ko, 4000))]); } catch (e) { source = null; }
+    }
+    if (!source){
+      const v = $('video'), cv = document.createElement('canvas');
+      cv.width = v.videoWidth; cv.height = v.videoHeight;
+      cv.getContext('2d').drawImage(v, 0, 0);
+      source = cv;
+    }
+    await enregistrer(source, catCourante);
+    await majCompteur();
+  } catch (e) { alerte('Photo non enregistrée : ' + e.message); }
+  enCours = false;
+};
+$('btnEffacer').onclick = async () => {
+  const p = await majCompteur();
+  if (p.length){ await req('photos', 'readwrite', s => s.delete(p[p.length - 1].id)); vibrer(); await majCompteur(); return; }
+  if (estDernierSondage()){
+    const c = chantierCourant;
+    if (catCourante.startsWith('TR')) c.tarieres--; else c.penetros--;
+    await sauverChantier(c); fermerCamera();
+  }
+};
+$('btnCamRetour').onclick = fermerCamera;
+$('fichierPhoto').onchange = async e => {
+  for (const f of e.target.files) await enregistrer(f, catCourante);
+  e.target.value = ''; ouvrirChantier(chantierCourant);
+};
+function choisirGalerie(code){ catCourante = code; $('fichierGalerie').click(); }
+$('fichierGalerie').onchange = async e => {
+  for (const f of e.target.files) await enregistrer(f, catCourante);
+  e.target.value = ''; ouvrirChantier(chantierCourant);
+};
+
+/* ---------- Archive zip (sans compression : les JPEG le sont déjà) ---------- */
+const TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(o){ let c = 0xFFFFFFFF; for (let i = 0; i < o.length; i++) c = TABLE[(c ^ o[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function fabriquerZip(entrees){   // entrees : [{chemin, blob, date}]
+  const enc = new TextEncoder(), morceaux = [], central = []; let pos = 0;
+  for (const e of entrees){
+    const nom = enc.encode(e.chemin), data = new Uint8Array(await e.blob.arrayBuffer()), crc = crc32(data), d = e.date;
+    const heure = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const jour = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    const loc = new DataView(new ArrayBuffer(30));
+    loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true); loc.setUint16(6, 0x0800, true);
+    loc.setUint16(10, heure, true); loc.setUint16(12, jour, true); loc.setUint32(14, crc, true);
+    loc.setUint32(18, data.length, true); loc.setUint32(22, data.length, true); loc.setUint16(26, nom.length, true);
+    morceaux.push(loc, nom, data);
+    const cen = new DataView(new ArrayBuffer(46));
+    cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
+    cen.setUint16(12, heure, true); cen.setUint16(14, jour, true); cen.setUint32(16, crc, true);
+    cen.setUint32(20, data.length, true); cen.setUint32(24, data.length, true); cen.setUint16(28, nom.length, true);
+    cen.setUint32(42, pos, true);
+    central.push(cen, nom);
+    pos += 30 + nom.length + data.length;
+  }
+  const tailleCentral = central.reduce((s, x) => s + x.byteLength, 0);
+  const fin = new DataView(new ArrayBuffer(22));
+  fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, entrees.length, true); fin.setUint16(10, entrees.length, true);
+  fin.setUint32(12, tailleCentral, true); fin.setUint32(16, pos, true);
+  return new Blob([...morceaux, ...central, fin], {type:'application/zip'});
+}
+
+/* ---------- Fin de chantier et envoi ---------- */
+function alerte(texte, ok){ const n = $('envNote'); n.textContent = texte; n.className = 'note' + (ok ? ' ok' : ''); n.style.display = texte ? 'block' : 'none'; }
+function nomDossier(c){ return c.nom + ' - chantier ' + dateCompacte(c.date); }
+async function preparer(){
+  const c = chantierCourant, photos = (await photosDe(c.id)).sort((a, b) => a.nom.localeCompare(b.nom));
+  const racine = nomDossier(c) + '/';
+  const fiche = {
+    chantier: c.nom, date_chantier: c.date.slice(0, 10), tarieres: c.tarieres, penetros: c.penetros,
+    lien_proposition_technique: c.plan || null, version_appli: VERSION,
+    photos: photos.map(p => ({fichier: p.nom, categorie: p.cat, dossier: infoCat(p.cat).dossier, heure: p.heure}))
+  };
+  const entrees = photos.map(p => ({chemin: racine + infoCat(p.cat).dossier + '/' + p.nom, blob: p.blob, date: new Date(p.heure)}));
+  entrees.push({chemin: racine + 'chantier.json', blob: new Blob([JSON.stringify(fiche, null, 2)], {type:'application/json'}), date: new Date()});
+  const zip = await fabriquerZip(entrees);
+  return {
+    photos,
+    zip: new File([zip], nomDossier(c) + '.zip', {type:'application/zip'}),
+    images: photos.map(p => new File([p.blob], p.nom, {type:'image/jpeg'}))
+  };
+}
+async function ouvrirEnvoi(){
+  const c = chantierCourant;
+  $('envNom').textContent = c.nom; alerte('Préparation du dossier…');
+  $('recap').innerHTML = ''; montrer('envoi');
+  fichiersPrets = await preparer();
+  const nb = {}; fichiersPrets.photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
+  const codes = ['SITE', 'PANO'];
+  for (let i = 1; i <= c.tarieres; i++) codes.push('TR' + i);
+  for (let i = 1; i <= c.penetros; i++) codes.push('P' + i);
+  codes.push('FICHE');
+  let manques = 0;
+  for (const code of codes){
+    const n = nb[code] || 0, d = document.createElement('div'); d.className = 'ligne';
+    const facultatif = code === 'PANO';
+    if (!n && !facultatif) manques++;
+    d.innerHTML = '<span></span><b></b>';
+    d.firstChild.textContent = infoCat(code).nom;
+    d.lastChild.textContent = n ? n + ' photo' + (n > 1 ? 's' : '') : (facultatif ? '—' : 'MANQUE');
+    if (!n && !facultatif) d.lastChild.className = 'manque';
+    $('recap').appendChild(d);
+  }
+  const mo = (fichiersPrets.zip.size / 1048576).toFixed(1);
+  if (!fichiersPrets.photos.length) alerte('Aucune photo dans ce chantier.');
+  else if (manques) alerte('Il manque des photos (lignes en rouge). Vous pouvez retourner les prendre, ou envoyer quand même. Dossier : ' + mo + ' Mo.');
+  else alerte('Dossier complet : ' + fichiersPrets.photos.length + ' photos, ' + mo + ' Mo. Envoyez-le à ' + DESTINATAIRE + '.', true);
+}
+$('btnFin').onclick = ouvrirEnvoi;
+$('btnEnvRetour').onclick = () => ouvrirChantier(chantierCourant);
+async function marquerEnvoye(){ chantierCourant.envoye = true; await sauverChantier(chantierCourant); }
+function telecharger(){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(fichiersPrets.zip); a.download = fichiersPrets.zip.name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+$('btnZip').onclick = async () => {
+  if (!fichiersPrets || !fichiersPrets.photos.length) return;
+  telecharger(); await marquerEnvoye();
+  alerte('Dossier enregistré dans « Téléchargements » : ' + fichiersPrets.zip.name + '. Joignez-le à un mail pour ' + DESTINATAIRE + '.', true);
+};
+$('btnPartager').onclick = async () => {
+  if (!fichiersPrets || !fichiersPrets.photos.length) return;
+  const c = chantierCourant, base = {title: 'Chantier ' + c.nom + ' - ' + dateFR(c.date), text: 'Chantier ' + c.nom + ' du ' + dateFR(c.date) + ' - ' + fichiersPrets.photos.length + ' photos. Destinataire : ' + DESTINATAIRE};
+  let lot = null;
+  if (navigator.canShare){
+    if (navigator.canShare({files: [fichiersPrets.zip]})) lot = [fichiersPrets.zip];
+    else if (navigator.canShare({files: fichiersPrets.images})) lot = fichiersPrets.images;
+  }
+  if (!lot){ telecharger(); await marquerEnvoye(); alerte('Le partage direct n\'est pas possible sur ce téléphone. Le dossier est enregistré dans « Téléchargements » : joignez-le à un mail pour ' + DESTINATAIRE + '.', true); return; }
+  try {
+    await navigator.share({...base, files: lot});
+    await marquerEnvoye();
+    alerte('Partage lancé. Vérifiez que le mail est bien parti avant d\'effacer le chantier.', true);
+  } catch (e) {
+    if (e.name !== 'AbortError') alerte('Partage impossible (' + e.name + '). Utilisez « Enregistrer le dossier dans le téléphone ».');
+  }
+};
+let confirmation = 0;
+$('btnSupprimer').onclick = async () => {
+  const b = $('btnSupprimer');
+  if (Date.now() - confirmation > 4000){ confirmation = Date.now(); b.textContent = 'APPUYER ENCORE POUR TOUT EFFACER'; setTimeout(() => b.textContent = 'EFFACER CE CHANTIER DU TÉLÉPHONE', 4000); return; }
+  const id = chantierCourant.id, photos = await photosDe(id);
+  await req('photos', 'readwrite', s => { photos.forEach(p => s.delete(p.id)); });
+  await req('chantiers', 'readwrite', s => s.delete(id));
+  confirmation = 0; b.textContent = 'EFFACER CE CHANTIER DU TÉLÉPHONE';
+  afficherAccueil();
+};
+
+/* ---------- Démarrage ---------- */
+(async () => {
+  bd = await ouvrirBD();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  const p = new URLSearchParams(location.search), c = p.get('c');
+  if (c){ history.replaceState(null, '', location.pathname); await creerOuOuvrir(c, p.get('pt')); }
+  else await afficherAccueil();
+})();
+</script>
+</body>
+</html>
