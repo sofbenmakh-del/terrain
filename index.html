@@ -187,7 +187,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.3';
+const VERSION = '1.4';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -480,14 +480,21 @@ function majPuces(){
   for (const s of l){
     const b = document.createElement('button'), im = c.implantation[s];
     b.className = 'puce' + (im ? (im.statut === 'non réalisé' ? ' nonfait' : im.statut === 'déplacé' ? ' deplace' : ' place') : '') + (s === sondageChoisi ? ' choisi' : '');
-    b.textContent = s; b.onclick = () => { sondageChoisi = s; majPuces(); };
+    b.textContent = s; b.onclick = () => { sondageChoisi = s; deplacement = null; majPuces(); };
     z.appendChild(b);
   }
   const im = sondageChoisi && c.implantation[sondageChoisi];
   $('btnNonRealise').style.display = sondageChoisi ? 'block' : 'none';
-  $('btnDeplace').style.display = im && im.x != null ? 'block' : 'none';
+  $('btnDeplace').style.display = sondageChoisi ? 'block' : 'none';
   $('btnDeplace').textContent = sondageChoisi + ' A ÉTÉ DÉPLACÉ';
-  $('planAide').textContent = sondageChoisi ? 'Touchez le symbole de ' + sondageChoisi + ' sur le plan pour y mettre son étiquette.' : (l.length ? 'Toutes les étiquettes sont posées. Touchez un sondage pour corriger.' : '');
+  $('planAide').textContent = sondageChoisi ? 'Touchez à côté du point ' + sondageChoisi + ' du plan pour y poser son étiquette. S\'il a été déplacé, utilisez le bouton « ' + sondageChoisi + ' a été déplacé ».' : (l.length ? 'Toutes les étiquettes sont posées. Touchez un sondage pour corriger.' : '');
+}
+function etiquette(ctx, s, tx, ty, r, couleur){
+  ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(s).width;
+  ctx.fillStyle = '#fff'; ctx.fillRect(tx - 4, ty - r, w + 8, r * 2);
+  ctx.strokeStyle = couleur; ctx.lineWidth = Math.max(2, r / 5); ctx.strokeRect(tx - 4, ty - r, w + 8, r * 2);
+  ctx.fillStyle = couleur; ctx.fillText(s, tx, ty);
 }
 function symbole(ctx, s, x, y, r, couleurTexte){
   ctx.lineWidth = r / 4;
@@ -510,7 +517,9 @@ function dessinerAnnotations(ctx, W){
   const c = chantierCourant, r = Math.max(8, W / 90);
   for (const s of sondages(c)){
     const im = c.implantation[s]; if (!im || im.statut === 'non réalisé') continue;
-    symbole(ctx, s, im.x * W, im.y * (planImg.height * W / planImg.width), r, couleurStatut(im));
+    const px = im.x * W, py = im.y * (planImg.height * W / planImg.width);
+    if (im.statut === 'déplacé') symbole(ctx, s, px, py, r, couleurStatut(im));
+    else { ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; etiquette(ctx, s, px - (ctx.measureText(s).width + 8) / 2 + 4, py, r, '#0d1b1e'); }
   }
 }
 function dessinerPlan(){
@@ -529,17 +538,18 @@ $('canvasPlan').onclick = e => {
   if (!sondageChoisi){ choisir('Choisissez d\'abord un sondage', [{texte:'OK', style:'secondaire'}]); return; }
   const rc = e.currentTarget.getBoundingClientRect();
   const x = (e.clientX - rc.left) / rc.width, y = (e.clientY - rc.top) / rc.height;
-  const s = sondageChoisi, avant = chantierCourant.implantation[s];
-  const garde = avant && avant.statut === 'déplacé';
-  poser(s, x, y, garde ? 'déplacé' : 'conforme', garde ? avant.raison : '', true);
+  const s = sondageChoisi;
+  if (deplacement && deplacement.s === s){ const rs = deplacement.raison; deplacement = null; poser(s, x, y, 'déplacé', rs, true); return; }
+  poser(s, x, y, 'conforme', '', true);
 };
+let deplacement = null;   // {s, raison} : la prochaine touche sur le plan pose le nouveau point
 $('btnDeplace').onclick = () => {
-  const s = sondageChoisi, im = chantierCourant.implantation[s]; if (!im || im.x == null) return;
+  const s = sondageChoisi; if (!s) return;
+  const attendre = rs => { deplacement = {s, raison: rs}; $('planAide').textContent = 'Touchez sur le plan la NOUVELLE position de ' + s + ' : un symbole et son étiquette y seront dessinés.'; };
   choisir(s + ' déplacé : pourquoi ?', [
-    ...RAISONS.map(rs => ({texte:rs.toUpperCase(), style:'secondaire', action: () => poser(s, im.x, im.y, 'déplacé', rs)})),
+    ...RAISONS.map(rs => ({texte:rs.toUpperCase(), style:'secondaire', action: () => attendre(rs)})),
     {champ:'Autre raison (dictée possible)'},
-    {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => poser(s, im.x, im.y, 'déplacé', ($('champLibre').value || 'autre').trim())},
-    {texte:'FINALEMENT CONFORME AU PLAN', style:'secondaire', action: () => poser(s, im.x, im.y, 'conforme', '')},
+    {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => attendre(($('champLibre').value || 'autre').trim())},
     {texte:'ANNULER', style:'discret'}
   ]);
 };
@@ -684,10 +694,12 @@ async function envoyer(){
     const lien = await deposerZip(z);
     const titre = 'Chantier ' + c.nom + ' du ' + dateFR(c.date);
     const details = zipPret.photos.length + ' photos - ' + (z.size / 1048576).toFixed(1) + ' Mo';
-    const r = await fetch('https://formsubmit.co/ajax/' + DESTINATAIRE, {method: 'POST',
+    const mail = () => fetch('https://formsubmit.co/ajax/' + DESTINATAIRE, {method: 'POST',
       headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
       body: JSON.stringify({_subject: titre, _template: 'box', _captcha: 'false',
         Chantier: c.nom, Date: dateFR(c.date), Contenu: details, 'Telecharger le zip (72 h)': lien})});
+    let r = await mail();
+    if (r.status >= 500){ await new Promise(ok => setTimeout(ok, 3000)); r = await mail(); }
     const rep = await r.json().catch(() => ({}));
     if (!r.ok || String(rep.success) !== 'true') throw new Error('mail non parti : ' + (rep.message || r.status));
     // copie de secours sur le canal de notification (sans incidence si elle échoue)
