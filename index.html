@@ -135,9 +135,9 @@ p{margin:0;font-size:19px;line-height:1.35}
 <section class="ecran" id="panorama">
   <header><div class="petit">Panorama</div><div class="titre" id="panoTitre">PANORAMA</div></header>
   <main>
-    <button id="btnPanoCamera">1. OUVRIR L'APPAREIL PHOTO</button>
-    <div class="note">Passez en mode <b>Panorama</b> dans l'appareil photo, prenez le panorama, puis revenez ici.</div>
-    <button class="envoyer" id="btnPanoAjouter">2. AJOUTER LE PANORAMA PRIS</button>
+    <button class="envoyer" id="btnPanoCamera">PRENDRE LE PANORAMA</button>
+    <div class="note">L'appareil photo du téléphone s'ouvre : choisissez le mode <b>Panorama</b> s'il est proposé, prenez la vue, validez. Elle arrive ici toute seule.</div>
+    <button class="secondaire" id="btnPanoAjouter">IMPORTER UN PANORAMA DÉJÀ PRIS</button>
     <button class="secondaire" id="btnPanoVoir">VOIR / SUPPRIMER (0)</button>
     <button id="btnPanoRetour" style="background:var(--vert)">RETOUR</button>
   </main>
@@ -153,10 +153,11 @@ p{margin:0;font-size:19px;line-height:1.35}
       <button id="btnImporterPlan">CHARGER LE PLAN (PDF OU IMAGE)</button>
     </div>
     <div id="planPlein" style="display:none;flex-direction:column;gap:12px">
-      <div class="note" id="planAide">Choisissez un sondage ci-dessous, puis touchez sa position réelle sur le plan.</div>
+      <div class="note" id="planAide"></div>
       <div id="zonePlan"><canvas id="canvasPlan"></canvas></div>
       <div class="duo"><button class="secondaire" id="btnZoomMoins">ZOOM −</button><button class="secondaire" id="btnZoomPlus">ZOOM +</button></div>
       <div class="puces" id="puces"></div>
+      <button class="secondaire" id="btnDeplace" style="display:none">SONDAGE DÉPLACÉ</button>
       <button class="danger" id="btnNonRealise" style="display:none">SONDAGE NON RÉALISÉ</button>
       <button class="discret" id="btnChangerPlan">Changer de plan</button>
     </div>
@@ -181,11 +182,12 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <input type="file" id="fichierPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="fichierGalerie" accept="image/*" multiple hidden>
+<input type="file" id="fichierPano" accept="image/*" capture="environment" hidden>
 <input type="file" id="fichierPlan" accept="application/pdf,image/*" hidden>
 
 <script>
 'use strict';
-const VERSION = '1.2';
+const VERSION = '1.3';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -419,7 +421,8 @@ async function ouvrirPanorama(){
   $('btnPanoVoir').textContent = 'VOIR / SUPPRIMER (' + n + ')';
   montrer('panorama');
 }
-$('btnPanoCamera').onclick = () => { location.href = 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end'; };
+$('btnPanoCamera').onclick = () => { catCourante = 'PANO'; $('fichierPano').click(); };
+$('fichierPano').onchange = async e => { for (const f of e.target.files) await enregistrer(f, 'PANO', 4096); e.target.value = ''; vibrer(); ouvrirPanorama(); };
 $('btnPanoAjouter').onclick = () => { catCourante = 'PANO'; $('fichierGalerie').click(); };
 $('btnPanoVoir').onclick = () => ouvrirGalerie('PANO', 'panorama');
 $('btnPanoRetour').onclick = () => ouvrirChantier(chantierCourant);
@@ -454,7 +457,7 @@ async function ouvrirPlan(){
   if (!c.planImage){ $('planVide').style.display = 'flex'; $('planPlein').style.display = 'none'; montrer('plan'); return; }
   $('planVide').style.display = 'none'; $('planPlein').style.display = 'flex';
   planImg = await createImageBitmap(c.planImage);
-  sondageChoisi = null; majPuces(); dessinerPlan();
+  sondageChoisi = sondages(c).find(t => !c.implantation[t]) || null; majPuces(); dessinerPlan();
   montrer('plan');
 }
 $('btnOuvrirPT').onclick = () => window.open(chantierCourant.lienPT, '_blank');
@@ -480,8 +483,11 @@ function majPuces(){
     b.textContent = s; b.onclick = () => { sondageChoisi = s; majPuces(); };
     z.appendChild(b);
   }
+  const im = sondageChoisi && c.implantation[sondageChoisi];
   $('btnNonRealise').style.display = sondageChoisi ? 'block' : 'none';
-  $('planAide').textContent = sondageChoisi ? 'Touchez la position réelle de ' + sondageChoisi + ' sur le plan.' : 'Choisissez un sondage ci-dessous, puis touchez sa position réelle sur le plan.';
+  $('btnDeplace').style.display = im && im.x != null ? 'block' : 'none';
+  $('btnDeplace').textContent = sondageChoisi + ' A ÉTÉ DÉPLACÉ';
+  $('planAide').textContent = sondageChoisi ? 'Touchez le symbole de ' + sondageChoisi + ' sur le plan pour y mettre son étiquette.' : (l.length ? 'Toutes les étiquettes sont posées. Touchez un sondage pour corriger.' : '');
 }
 function symbole(ctx, s, x, y, r, couleurTexte){
   ctx.lineWidth = r / 4;
@@ -523,19 +529,26 @@ $('canvasPlan').onclick = e => {
   if (!sondageChoisi){ choisir('Choisissez d\'abord un sondage', [{texte:'OK', style:'secondaire'}]); return; }
   const rc = e.currentTarget.getBoundingClientRect();
   const x = (e.clientX - rc.left) / rc.width, y = (e.clientY - rc.top) / rc.height;
-  const s = sondageChoisi;
-  choisir(s + ' : position conforme au plan prévu ?', [
-    {texte:'OUI, CONFORME', action: () => poser(s, x, y, 'conforme', '')},
-    ...RAISONS.map(rs => ({texte:'DÉPLACÉ : ' + rs.toUpperCase(), style:'secondaire', action: () => poser(s, x, y, 'déplacé', rs)})),
+  const s = sondageChoisi, avant = chantierCourant.implantation[s];
+  const garde = avant && avant.statut === 'déplacé';
+  poser(s, x, y, garde ? 'déplacé' : 'conforme', garde ? avant.raison : '', true);
+};
+$('btnDeplace').onclick = () => {
+  const s = sondageChoisi, im = chantierCourant.implantation[s]; if (!im || im.x == null) return;
+  choisir(s + ' déplacé : pourquoi ?', [
+    ...RAISONS.map(rs => ({texte:rs.toUpperCase(), style:'secondaire', action: () => poser(s, im.x, im.y, 'déplacé', rs)})),
     {champ:'Autre raison (dictée possible)'},
-    {texte:'DÉPLACÉ : AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => poser(s, x, y, 'déplacé', ($('champLibre').value || 'autre').trim())},
+    {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => poser(s, im.x, im.y, 'déplacé', ($('champLibre').value || 'autre').trim())},
+    {texte:'FINALEMENT CONFORME AU PLAN', style:'secondaire', action: () => poser(s, im.x, im.y, 'conforme', '')},
     {texte:'ANNULER', style:'discret'}
   ]);
 };
-async function poser(s, x, y, statut, raison){
+async function poser(s, x, y, statut, raison, suivant){
   chantierCourant.implantation[s] = {x, y, statut, raison};
   await sauverChantier(chantierCourant); vibrer();
-  sondageChoisi = null; majPuces(); dessinerPlan();
+  // passe tout seul au sondage suivant pas encore étiqueté
+  sondageChoisi = suivant ? (sondages(chantierCourant).find(t => !chantierCourant.implantation[t]) || null) : null;
+  majPuces(); dessinerPlan();
 }
 $('btnNonRealise').onclick = () => {
   const s = sondageChoisi;
@@ -670,11 +683,15 @@ async function envoyer(){
   try {
     const lien = await deposerZip(z);
     const titre = 'Chantier ' + c.nom + ' du ' + dateFR(c.date);
-    const msg = {topic: cle, title: titre, email: DESTINATAIRE, click: lien, tags: ['package'],
-      message: titre + '\n' + zipPret.photos.length + ' photos - ' + (z.size / 1048576).toFixed(1) + ' Mo\n\nTélécharger le dossier (lien valable 72 h) :\n' + lien,
-      actions: [{action: 'view', label: 'Télécharger le zip', url: lien}]};
-    const r = await fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify(msg)});
-    if (!r.ok) throw new Error('mail refusé (' + r.status + ')');
+    const details = zipPret.photos.length + ' photos - ' + (z.size / 1048576).toFixed(1) + ' Mo';
+    const r = await fetch('https://formsubmit.co/ajax/' + DESTINATAIRE, {method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify({_subject: titre, _template: 'box', _captcha: 'false',
+        Chantier: c.nom, Date: dateFR(c.date), Contenu: details, 'Telecharger le zip (72 h)': lien})});
+    const rep = await r.json().catch(() => ({}));
+    if (!r.ok || String(rep.success) !== 'true') throw new Error('mail non parti : ' + (rep.message || r.status));
+    // copie de secours sur le canal de notification (sans incidence si elle échoue)
+    fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify({topic: cle, title: titre, message: details + '\n' + lien, click: lien, tags: ['package']})}).catch(() => {});
     c.envoye = true; c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString(); await sauverChantier(c); attendreReseau = false;
     note('✔ ENVOYÉ au bureau. Vous pouvez fermer l\'appli.', true); vibrer();
   } catch (e) {
