@@ -27,12 +27,14 @@ button:active{filter:brightness(.8)}
 .large{grid-column:1/-1}
 .envoyer{background:var(--orange);min-height:110px;font-size:28px}
 .secondaire{background:#fff;color:var(--bleu);border:3px solid var(--bleu)}
-.danger{background:#fff;color:var(--rouge);border:3px solid var(--rouge);font-size:19px;min-height:72px}
+.danger{background:#fff;color:var(--rouge);border:3px solid var(--rouge);font-size:20px;min-height:80px}
 .discret{background:transparent;color:var(--bleu);font-size:18px;min-height:60px;text-decoration:underline}
-input[type=text]{font:inherit;font-size:24px;font-weight:700;padding:18px;border:3px solid var(--bleu);border-radius:16px;width:100%;text-transform:uppercase;user-select:text}
+input[type=text]{font:inherit;font-size:24px;font-weight:700;padding:18px;border:3px solid var(--bleu);border-radius:16px;width:100%;user-select:text}
+#nomChantier{text-transform:uppercase}
 p{margin:0;font-size:19px;line-height:1.35}
-.note{background:#fff;border-left:8px solid var(--orange);border-radius:10px;padding:14px;font-size:19px}
+.note{background:#fff;border-left:8px solid var(--orange);border-radius:10px;padding:14px;font-size:19px;line-height:1.35}
 .note.ok{border-left-color:var(--vert)}
+.note b{font-weight:800}
 .ligne{display:flex;justify-content:space-between;align-items:center;font-size:20px;padding:10px 4px;border-bottom:2px solid var(--gris)}
 .ligne b{font-size:22px}
 .manque{color:var(--rouge);font-weight:800}
@@ -41,7 +43,6 @@ p{margin:0;font-size:19px;line-height:1.35}
 #video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 #camHaut{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px;padding-top:calc(12px + env(safe-area-inset-top));background:linear-gradient(#000c,#0000);z-index:2}
 #camHaut .cat{font-size:30px;font-weight:900}
-#camHaut .cpt{font-size:22px;font-weight:800;background:var(--vert);border-radius:999px;padding:6px 16px}
 #declencheur{position:absolute;left:0;right:0;bottom:120px;top:45%;background:transparent;border-radius:0;z-index:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18px}
 #declencheur span{width:120px;height:120px;border-radius:50%;border:8px solid #fff;background:#ffffff55;display:block}
 #camBas{position:absolute;left:0;right:0;bottom:0;height:120px;display:flex;gap:10px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#000;z-index:2}
@@ -49,6 +50,27 @@ p{margin:0;font-size:19px;line-height:1.35}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3;transition:opacity .25s}
 #flash.on{opacity:.85;transition:none}
 #vignette{position:absolute;right:12px;top:90px;width:84px;height:84px;object-fit:cover;border:3px solid #fff;border-radius:10px;z-index:2;display:none}
+/* galerie */
+.vignettes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vignettes img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:3px solid var(--gris);display:block}
+#grande{width:100%;max-height:60vh;object-fit:contain;background:#000;border-radius:12px}
+/* plan */
+#zonePlan{overflow:auto;background:#222;border-radius:12px;max-height:58vh;touch-action:pan-x pan-y}
+#canvasPlan{display:block}
+.puces{display:flex;flex-wrap:wrap;gap:10px}
+.puce{width:auto;flex:1 0 28%;min-height:72px;font-size:22px;background:#fff;color:var(--bleu);border:3px solid var(--bleu)}
+.puce.place{background:var(--vert);color:#fff;border-color:var(--vert)}
+.puce.deplace{background:var(--orange);color:#fff;border-color:var(--orange)}
+.puce.nonfait{background:var(--rouge);color:#fff;border-color:var(--rouge)}
+.puce.choisi{outline:6px solid #000;outline-offset:2px}
+.duo{display:flex;gap:10px}
+.duo button{flex:1}
+/* fenêtre */
+#fenetre{position:fixed;inset:0;background:#000a;z-index:10;display:none;align-items:flex-end}
+#fenetre.ouverte{display:flex}
+#fenetre .boite{background:var(--fond);width:100%;border-radius:20px 20px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;max-height:92vh;overflow:auto}
+#fenetre h2{margin:0 0 4px;font-size:24px}
+#fenetre button{min-height:72px;font-size:21px}
 </style>
 </head>
 <body>
@@ -58,7 +80,7 @@ p{margin:0;font-size:19px;line-height:1.35}
   <header><div class="petit">Kaliforage</div><div class="titre">Chantiers</div></header>
   <main>
     <div id="listeChantiers" style="display:flex;flex-direction:column;gap:12px"></div>
-    <div class="note" id="aideLien">Pour ouvrir un chantier, touchez le lien dans l'agenda. Sinon, tapez son nom ci-dessous.</div>
+    <div class="note">Pour ouvrir un chantier, touchez le lien « Appli terrain » dans l'événement de l'agenda. Sinon, tapez le nom du dossier ci-dessous.</div>
     <input type="text" id="nomChantier" placeholder="156 LES ORBES" autocomplete="off" autocapitalize="characters">
     <button id="btnNouveau">OUVRIR CE CHANTIER</button>
     <p id="version" style="text-align:center;font-size:14px;opacity:.6"></p>
@@ -80,12 +102,66 @@ p{margin:0;font-size:19px;line-height:1.35}
   <video id="video" playsinline autoplay muted></video>
   <div id="flash"></div>
   <img id="vignette" alt="">
-  <div id="camHaut"><span class="cat" id="camCat"></span><span class="cpt" id="camCpt">0</span></div>
+  <div id="camHaut"><span class="cat" id="camCat"></span></div>
   <button id="declencheur" aria-label="Prendre la photo"><span></span></button>
   <div id="camBas">
-    <button class="danger" id="btnEffacer" style="flex:1">EFFACER LA DERNIÈRE</button>
+    <button class="secondaire" id="btnCamPhotos" style="flex:1">PHOTOS (0)</button>
     <button id="btnCamRetour" style="flex:1;background:var(--vert)">TERMINÉ</button>
   </div>
+</section>
+
+<!-- PHOTOS D'UNE CATÉGORIE -->
+<section class="ecran" id="galerie">
+  <header><div class="petit">Photos · touchez pour supprimer</div><div class="titre" id="galTitre"></div></header>
+  <main>
+    <div class="vignettes" id="galGrille"></div>
+    <p id="galVide" style="display:none">Aucune photo.</p>
+    <button class="danger" id="btnAnnulerSondage" style="display:none">SUPPRIMER CE SONDAGE (aucune photo)</button>
+    <button id="btnGalRetour" style="background:var(--vert)">RETOUR</button>
+  </main>
+</section>
+
+<!-- UNE PHOTO -->
+<section class="ecran" id="visionneuse">
+  <header><div class="petit">Photo</div><div class="titre" id="visTitre"></div></header>
+  <main>
+    <img id="grande" alt="">
+    <button class="danger" id="btnSupprPhoto">SUPPRIMER CETTE PHOTO</button>
+    <button id="btnVisRetour" style="background:var(--vert)">GARDER ET REVENIR</button>
+  </main>
+</section>
+
+<!-- PANORAMA -->
+<section class="ecran" id="panorama">
+  <header><div class="petit">Panorama</div><div class="titre" id="panoTitre">PANORAMA</div></header>
+  <main>
+    <button id="btnPanoCamera">1. OUVRIR L'APPAREIL PHOTO</button>
+    <div class="note">Passez en mode <b>Panorama</b> dans l'appareil photo, prenez le panorama, puis revenez ici.</div>
+    <button class="envoyer" id="btnPanoAjouter">2. AJOUTER LE PANORAMA PRIS</button>
+    <button class="secondaire" id="btnPanoVoir">VOIR / SUPPRIMER (0)</button>
+    <button id="btnPanoRetour" style="background:var(--vert)">RETOUR</button>
+  </main>
+</section>
+
+<!-- PLAN D'IMPLANTATION -->
+<section class="ecran" id="plan">
+  <header><div class="petit">Plan d'implantation</div><div class="titre" id="planTitre"></div></header>
+  <main>
+    <div id="planVide" style="display:flex;flex-direction:column;gap:12px">
+      <div class="note">Chargez le plan : la proposition technique (PDF) jointe à l'événement de l'agenda, ou une photo du plan.</div>
+      <button class="secondaire" id="btnOuvrirPT" style="display:none">1. TÉLÉCHARGER LA PROPOSITION TECHNIQUE</button>
+      <button id="btnImporterPlan">CHARGER LE PLAN (PDF OU IMAGE)</button>
+    </div>
+    <div id="planPlein" style="display:none;flex-direction:column;gap:12px">
+      <div class="note" id="planAide">Choisissez un sondage ci-dessous, puis touchez sa position réelle sur le plan.</div>
+      <div id="zonePlan"><canvas id="canvasPlan"></canvas></div>
+      <div class="duo"><button class="secondaire" id="btnZoomMoins">ZOOM −</button><button class="secondaire" id="btnZoomPlus">ZOOM +</button></div>
+      <div class="puces" id="puces"></div>
+      <button class="danger" id="btnNonRealise" style="display:none">SONDAGE NON RÉALISÉ</button>
+      <button class="discret" id="btnChangerPlan">Changer de plan</button>
+    </div>
+    <button id="btnPlanRetour" style="background:var(--vert)">RETOUR</button>
+  </main>
 </section>
 
 <!-- ENVOI -->
@@ -94,29 +170,33 @@ p{margin:0;font-size:19px;line-height:1.35}
   <main>
     <div id="recap"></div>
     <div class="note" id="envNote"></div>
-    <button class="envoyer" id="btnPartager">ENVOYER</button>
-    <button class="secondaire" id="btnZip">ENREGISTRER LE DOSSIER DANS LE TÉLÉPHONE</button>
+    <button class="envoyer" id="btnEnvoyer">ENVOYER</button>
     <button class="secondaire" id="btnEnvRetour">RETOUR AU CHANTIER</button>
     <button class="danger" id="btnSupprimer">EFFACER CE CHANTIER DU TÉLÉPHONE</button>
   </main>
 </section>
 
+<!-- FENÊTRE DE CHOIX -->
+<div id="fenetre"><div class="boite" id="boite"></div></div>
+
 <input type="file" id="fichierPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="fichierGalerie" accept="image/*" multiple hidden>
+<input type="file" id="fichierPlan" accept="application/pdf,image/*" hidden>
 
 <script>
 'use strict';
-const VERSION = '1.0';
+const VERSION = '1.2';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
-// Catégories fixes : code de fichier, libellé, dossier dans l'archive
+const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
+const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/';
 const FIXES = [
   {code:'SITE',  nom:'VUE DU SITE',    dossier:'Site'},
-  {code:'PANO',  nom:'PANORAMA',       dossier:'Panoramas', galerie:true},
+  {code:'PANO',  nom:'PANORAMA',       dossier:'Panoramas'},
   {code:'FICHE', nom:'FICHE CHANTIER', dossier:'Fiche chantier'}
 ];
 const $ = id => document.getElementById(id);
-let bd, chantierCourant = null, catCourante = null, flux = null, fichiersPrets = null;
+let bd, chantierCourant = null, catCourante = null, flux = null, retourGalerie = 'chantier';
 
 /* ---------- Base de données locale ---------- */
 function ouvrirBD(){
@@ -139,21 +219,34 @@ function req(magasin, mode, fn){
 const tousChantiers = () => req('chantiers', 'readonly', s => s.getAll());
 const sauverChantier = c => req('chantiers', 'readwrite', s => s.put(c));
 const photosDe = id => req('photos', 'readonly', s => s.index('chantier').getAll(id));
+const photosCat = async cat => (await photosDe(chantierCourant.id)).filter(p => p.cat === cat).sort((a, b) => a.n - b.n);
 
 /* ---------- Outils ---------- */
 const z2 = n => String(n).padStart(2, '0');
 function dateFR(iso){ const d = new Date(iso); return z2(d.getDate()) + '/' + z2(d.getMonth()+1) + '/' + d.getFullYear(); }
 function dateCompacte(iso){ const d = new Date(iso); return '' + d.getFullYear() + z2(d.getMonth()+1) + z2(d.getDate()); }
 function nettoyer(nom){ return nom.toUpperCase().replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim(); }
-// « 156 LES ORBES » -> « 156_LES-ORBES »
 function prefixe(nom){ const i = nom.indexOf(' '); return i < 0 ? nom : nom.slice(0, i) + '_' + nom.slice(i+1).replace(/ /g, '-'); }
 function infoCat(code){
   const f = FIXES.find(x => x.code === code); if (f) return f;
   if (code.startsWith('TR')) return {code, nom:'TARIÈRE ' + code.slice(2), dossier:'Tarières/' + code};
   return {code, nom:'PÉNÉTRO ' + code.slice(1), dossier:'Pénétros/' + code};
 }
+function sondages(c){ const l = []; for (let i = 1; i <= c.tarieres; i++) l.push('TR' + i); for (let i = 1; i <= c.penetros; i++) l.push('P' + i); return l; }
 function montrer(id){ document.querySelectorAll('.ecran').forEach(e => e.classList.toggle('actif', e.id === id)); window.scrollTo(0, 0); }
 function vibrer(){ if (navigator.vibrate) navigator.vibrate(40); }
+function fermerFenetre(){ $('fenetre').classList.remove('ouverte'); }
+// Fenêtre de choix : titre + liste de boutons [{texte, style, action}]
+function choisir(titre, boutons){
+  const b = $('boite'); b.innerHTML = '';
+  const h = document.createElement('h2'); h.textContent = titre; b.appendChild(h);
+  for (const o of boutons){
+    if (o.champ){ const i = document.createElement('input'); i.type = 'text'; i.id = 'champLibre'; i.placeholder = o.champ; b.appendChild(i); continue; }
+    const x = document.createElement('button'); x.textContent = o.texte; if (o.style) x.className = o.style;
+    x.onclick = () => { fermerFenetre(); o.action && o.action(); }; b.appendChild(x);
+  }
+  $('fenetre').classList.add('ouverte');
+}
 
 /* ---------- Accueil ---------- */
 async function afficherAccueil(){
@@ -169,17 +262,15 @@ async function afficherAccueil(){
     b.onclick = () => ouvrirChantier(c);
     zone.appendChild(b);
   }
-  $('version').textContent = 'Version ' + VERSION;
+  $('version').textContent = 'Version ' + VERSION + (CLE() ? ' · reliée au bureau' : ' · PAS RELIÉE AU BUREAU');
   montrer('accueil');
 }
 async function creerOuOuvrir(nomBrut, lienPlan){
   const nom = nettoyer(nomBrut); if (!nom) return;
   const liste = await tousChantiers();
   let c = liste.find(x => x.nom === nom && !x.envoye) || liste.find(x => x.nom === nom);
-  if (!c){
-    c = {id: Date.now().toString(36), nom, date: new Date().toISOString(), tarieres:0, penetros:0, envoye:false};
-  }
-  if (lienPlan) c.plan = lienPlan;
+  if (!c) c = {id: Date.now().toString(36), nom, date: new Date().toISOString(), tarieres:0, penetros:0, envoye:false, implantation:{}};
+  if (lienPlan) c.lienPT = lienPlan;
   await sauverChantier(c);
   ouvrirChantier(c);
 }
@@ -187,85 +278,79 @@ $('btnNouveau').onclick = () => { creerOuOuvrir($('nomChantier').value); $('nomC
 
 /* ---------- Écran chantier ---------- */
 async function ouvrirChantier(c){
-  chantierCourant = c; fichiersPrets = null;
+  chantierCourant = c; c.implantation = c.implantation || {};
   $('chNom').textContent = c.nom; $('chDate').textContent = 'Chantier du ' + dateFR(c.date);
   const photos = await photosDe(c.id), nb = {};
   photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
   const g = $('grille'); g.innerHTML = '';
-  const tuile = (code, cls) => {
+  const tuile = (code, cls, action, texteNb) => {
     const i = infoCat(code), b = document.createElement('button'), n = nb[code] || 0;
-    b.className = 'tuile ' + (cls || '') + (n ? ' fait' : '');
+    b.className = 'tuile ' + (cls || '') + (n || texteNb ? ' fait' : '');
     b.innerHTML = '<span></span><span class="nb"></span>';
     b.firstChild.textContent = i.nom;
-    b.lastChild.textContent = n ? n + ' photo' + (n > 1 ? 's' : '') : 'aucune photo';
-    b.onclick = () => i.galerie ? choisirGalerie(code) : ouvrirCamera(code);
-    g.appendChild(b);
+    b.lastChild.textContent = texteNb || (n ? n + ' photo' + (n > 1 ? 's' : '') : 'aucune photo');
+    b.onclick = action || (() => ouvrirCamera(code));
+    g.appendChild(b); return b;
   };
   const ajout = (texte, champ) => {
     const b = document.createElement('button'); b.className = 'tuile ajout'; b.textContent = texte;
     b.onclick = async () => { c[champ]++; await sauverChantier(c); vibrer(); ouvrirCamera((champ === 'tarieres' ? 'TR' : 'P') + c[champ]); };
     g.appendChild(b);
   };
-  tuile('SITE'); tuile('PANO');
+  tuile('SITE'); tuile('PANO', '', ouvrirPanorama);
   for (let i = 1; i <= c.tarieres; i++) tuile('TR' + i);
   ajout('+ TARIÈRE', 'tarieres');
   for (let i = 1; i <= c.penetros; i++) tuile('P' + i);
   ajout('+ PÉNÉTRO', 'penetros');
   tuile('FICHE', 'large');
+  const places = Object.keys(c.implantation).length;
+  const tp = tuile('PLAN', 'large', ouvrirPlan, c.planImage ? (places ? places + ' sondage' + (places > 1 ? 's' : '') + ' positionné' + (places > 1 ? 's' : '') : 'plan chargé') : '');
+  tp.firstChild.textContent = "PLAN D'IMPLANTATION"; if (!c.planImage) tp.lastChild.textContent = 'à annoter';
   montrer('chantier');
 }
 $('btnRetourAccueil').onclick = afficherAccueil;
 
 /* ---------- Enregistrement d'une photo ---------- */
-async function reduire(source){
+async function versCanvas(source, max){
   const img = await createImageBitmap(source);
-  const k = Math.min(1, TAILLE_MAX / Math.max(img.width, img.height));
+  const k = Math.min(1, max / Math.max(img.width, img.height));
   const cv = document.createElement('canvas');
   cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
   cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
   if (img.close) img.close();
-  return new Promise(ok => cv.toBlob(ok, 'image/jpeg', QUALITE));
+  return cv;
 }
-async function enregistrer(source, cat){
-  const blob = await reduire(source);
-  const photos = (await photosDe(chantierCourant.id)).filter(p => p.cat === cat);
+const enJpeg = cv => new Promise(ok => cv.toBlob(ok, 'image/jpeg', QUALITE));
+async function enregistrer(source, cat, max){
+  const blob = await enJpeg(await versCanvas(source, max || TAILLE_MAX));
+  const photos = await photosCat(cat);
   const n = photos.reduce((m, p) => Math.max(m, p.n), 0) + 1;
   const nom = prefixe(chantierCourant.nom) + '_' + cat + '_' + z2(n) + '.jpg';
   await req('photos', 'readwrite', s => s.add({chantier: chantierCourant.id, cat, n, nom, heure: new Date().toISOString(), blob}));
   if (chantierCourant.envoye){ chantierCourant.envoye = false; await sauverChantier(chantierCourant); }
-  return {blob, total: photos.length + 1};
 }
 
 /* ---------- Caméra ---------- */
-async function majCompteur(){
-  const p = (await photosDe(chantierCourant.id)).filter(x => x.cat === catCourante).sort((a, b) => a.n - b.n);
-  $('camCpt').textContent = p.length;
+async function majCamera(){
+  const p = await photosCat(catCourante);
+  $('btnCamPhotos').textContent = 'PHOTOS (' + p.length + ')';
   const v = $('vignette');
   if (v.src) URL.revokeObjectURL(v.src);
   if (p.length){ v.src = URL.createObjectURL(p[p.length - 1].blob); v.style.display = 'block'; } else { v.removeAttribute('src'); v.style.display = 'none'; }
-  $('btnEffacer').textContent = p.length ? 'EFFACER LA DERNIÈRE' : (estDernierSondage() ? 'ANNULER CE SONDAGE' : 'EFFACER LA DERNIÈRE');
-  return p;
-}
-function estDernierSondage(){
-  const c = chantierCourant;
-  return catCourante === 'TR' + c.tarieres || catCourante === 'P' + c.penetros;
 }
 async function ouvrirCamera(code){
   catCourante = code; $('camCat').textContent = infoCat(code).nom;
-  try {
-    flux = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}});
-  } catch (e) { flux = null; }
-  if (!flux){ $('fichierPhoto').click(); return; }   // secours : appareil photo du téléphone
+  if (!flux){
+    try { flux = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}}); }
+    catch (e) { flux = null; }
+  }
+  if (!flux){ $('fichierPhoto').click(); return; }
   $('video').srcObject = flux;
-  await majCompteur();
+  await majCamera();
   montrer('camera');
   if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {});
 }
-function fermerCamera(){
-  if (flux){ flux.getTracks().forEach(t => t.stop()); flux = null; }
-  $('video').srcObject = null;
-  ouvrirChantier(chantierCourant);
-}
+function couperCamera(){ if (flux){ flux.getTracks().forEach(t => t.stop()); flux = null; } $('video').srcObject = null; }
 let enCours = false;
 $('declencheur').onclick = async () => {
   if (enCours || !flux) return; enCours = true;
@@ -279,38 +364,211 @@ $('declencheur').onclick = async () => {
     if (!source){
       const v = $('video'), cv = document.createElement('canvas');
       cv.width = v.videoWidth; cv.height = v.videoHeight;
-      cv.getContext('2d').drawImage(v, 0, 0);
-      source = cv;
+      cv.getContext('2d').drawImage(v, 0, 0); source = cv;
     }
     await enregistrer(source, catCourante);
-    await majCompteur();
-  } catch (e) { alerte('Photo non enregistrée : ' + e.message); }
+    await majCamera();
+  } catch (e) { alert('Photo non enregistrée : ' + e.message); }
   enCours = false;
 };
-$('btnEffacer').onclick = async () => {
-  const p = await majCompteur();
-  if (p.length){ await req('photos', 'readwrite', s => s.delete(p[p.length - 1].id)); vibrer(); await majCompteur(); return; }
-  if (estDernierSondage()){
-    const c = chantierCourant;
-    if (catCourante.startsWith('TR')) c.tarieres--; else c.penetros--;
-    await sauverChantier(c); fermerCamera();
+$('btnCamRetour').onclick = () => { couperCamera(); ouvrirChantier(chantierCourant); };
+$('btnCamPhotos').onclick = () => { couperCamera(); ouvrirGalerie(catCourante, 'camera'); };
+$('fichierPhoto').onchange = async e => { for (const f of e.target.files) await enregistrer(f, catCourante); e.target.value = ''; ouvrirChantier(chantierCourant); };
+
+/* ---------- Galerie : voir et supprimer n'importe quelle photo ---------- */
+async function ouvrirGalerie(cat, retour){
+  catCourante = cat; retourGalerie = retour;
+  $('galTitre').textContent = infoCat(cat).nom;
+  const p = await photosCat(cat), g = $('galGrille');
+  g.querySelectorAll('img').forEach(i => URL.revokeObjectURL(i.src)); g.innerHTML = '';
+  for (const ph of p){
+    const i = document.createElement('img'); i.src = URL.createObjectURL(ph.blob); i.onclick = () => ouvrirVisionneuse(ph); g.appendChild(i);
   }
+  $('galVide').style.display = p.length ? 'none' : 'block';
+  const c = chantierCourant, dernier = cat === 'TR' + c.tarieres || cat === 'P' + c.penetros;
+  $('btnAnnulerSondage').style.display = !p.length && dernier && /^(TR|P)\d/.test(cat) ? 'block' : 'none';
+  montrer('galerie');
+}
+$('btnGalRetour').onclick = () => {
+  if (retourGalerie === 'camera') ouvrirCamera(catCourante);
+  else if (retourGalerie === 'panorama') ouvrirPanorama();
+  else ouvrirChantier(chantierCourant);
 };
-$('btnCamRetour').onclick = fermerCamera;
-$('fichierPhoto').onchange = async e => {
-  for (const f of e.target.files) await enregistrer(f, catCourante);
-  e.target.value = ''; ouvrirChantier(chantierCourant);
+$('btnAnnulerSondage').onclick = async () => {
+  const c = chantierCourant;
+  if (catCourante.startsWith('TR')) c.tarieres--; else c.penetros--;
+  delete c.implantation[catCourante];
+  await sauverChantier(c); ouvrirChantier(c);
 };
-function choisirGalerie(code){ catCourante = code; $('fichierGalerie').click(); }
+let photoVue = null;
+function ouvrirVisionneuse(ph){
+  photoVue = ph; $('visTitre').textContent = infoCat(ph.cat).nom + ' · n° ' + ph.n;
+  const g = $('grande'); if (g.src) URL.revokeObjectURL(g.src); g.src = URL.createObjectURL(ph.blob);
+  montrer('visionneuse');
+}
+$('btnVisRetour').onclick = () => ouvrirGalerie(catCourante, retourGalerie);
+$('btnSupprPhoto').onclick = () => choisir('Supprimer cette photo ?', [
+  {texte:'OUI, SUPPRIMER', style:'danger', action: async () => { await req('photos', 'readwrite', s => s.delete(photoVue.id)); vibrer(); ouvrirGalerie(catCourante, retourGalerie); }},
+  {texte:'NON, GARDER', style:'secondaire'}
+]);
+
+/* ---------- Panorama : appareil photo du téléphone, puis import ---------- */
+async function ouvrirPanorama(){
+  catCourante = 'PANO';
+  const n = (await photosCat('PANO')).length;
+  $('btnPanoVoir').textContent = 'VOIR / SUPPRIMER (' + n + ')';
+  montrer('panorama');
+}
+$('btnPanoCamera').onclick = () => { location.href = 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end'; };
+$('btnPanoAjouter').onclick = () => { catCourante = 'PANO'; $('fichierGalerie').click(); };
+$('btnPanoVoir').onclick = () => ouvrirGalerie('PANO', 'panorama');
+$('btnPanoRetour').onclick = () => ouvrirChantier(chantierCourant);
 $('fichierGalerie').onchange = async e => {
-  for (const f of e.target.files) await enregistrer(f, catCourante);
-  e.target.value = ''; ouvrirChantier(chantierCourant);
+  for (const f of e.target.files) await enregistrer(f, catCourante, 4096);   // panoramas : plus large
+  e.target.value = ''; ouvrirPanorama();
 };
 
-/* ---------- Archive zip (sans compression : les JPEG le sont déjà) ---------- */
+/* ---------- Plan d'implantation ---------- */
+let planImg = null, zoom = 1, sondageChoisi = null;
+async function chargerPdfjs(){
+  if (window.pdfjsLib) return window.pdfjsLib;
+  await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = PDFJS + 'pdf.min.js'; s.onload = ok; s.onerror = () => ko(new Error('connexion internet nécessaire pour lire un PDF la première fois')); document.head.appendChild(s); });
+  const code = await (await fetch(PDFJS + 'pdf.worker.min.js')).text();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([code], {type:'text/javascript'}));
+  return pdfjsLib;
+}
+async function pdfVersImage(fichier){
+  const lib = await chargerPdfjs();
+  const doc = await lib.getDocument({data: await fichier.arrayBuffer()}).promise;
+  const page = await doc.getPage(Math.min(3, doc.numPages));   // page 3 = plan d'implantation des sondages
+  const vp1 = page.getViewport({scale: 1}), k = 2400 / Math.max(vp1.width, vp1.height), vp = page.getViewport({scale: k});
+  const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+  await page.render({canvasContext: cv.getContext('2d'), viewport: vp}).promise;
+  return enJpeg(cv);
+}
+async function ouvrirPlan(){
+  const c = chantierCourant; c.implantation = c.implantation || {};
+  $('planTitre').textContent = c.nom;
+  $('btnOuvrirPT').style.display = c.lienPT ? 'block' : 'none';
+  $('btnImporterPlan').textContent = c.lienPT ? '2. CHARGER LE PLAN (PDF OU IMAGE)' : 'CHARGER LE PLAN (PDF OU IMAGE)';
+  if (!c.planImage){ $('planVide').style.display = 'flex'; $('planPlein').style.display = 'none'; montrer('plan'); return; }
+  $('planVide').style.display = 'none'; $('planPlein').style.display = 'flex';
+  planImg = await createImageBitmap(c.planImage);
+  sondageChoisi = null; majPuces(); dessinerPlan();
+  montrer('plan');
+}
+$('btnOuvrirPT').onclick = () => window.open(chantierCourant.lienPT, '_blank');
+$('btnImporterPlan').onclick = () => $('fichierPlan').click();
+$('btnChangerPlan').onclick = () => choisir('Changer de plan ?', [
+  {texte:'OUI, CHARGER UN AUTRE PLAN (les positions sont gardées)', action: () => $('fichierPlan').click()},
+  {texte:'NON', style:'secondaire'}
+]);
+$('fichierPlan').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const blob = f.type === 'application/pdf' || /\.pdf$/i.test(f.name) ? await pdfVersImage(f) : await enJpeg(await versCanvas(f, 2400));
+    chantierCourant.planImage = blob; await sauverChantier(chantierCourant); ouvrirPlan();
+  } catch (err) { alert('Plan non chargé : ' + err.message); }
+};
+function majPuces(){
+  const c = chantierCourant, z = $('puces'); z.innerHTML = '';
+  const l = sondages(c);
+  if (!l.length){ const p = document.createElement('p'); p.textContent = 'Ajoutez d\'abord les tarières et pénétros depuis l\'écran du chantier.'; z.appendChild(p); }
+  for (const s of l){
+    const b = document.createElement('button'), im = c.implantation[s];
+    b.className = 'puce' + (im ? (im.statut === 'non réalisé' ? ' nonfait' : im.statut === 'déplacé' ? ' deplace' : ' place') : '') + (s === sondageChoisi ? ' choisi' : '');
+    b.textContent = s; b.onclick = () => { sondageChoisi = s; majPuces(); };
+    z.appendChild(b);
+  }
+  $('btnNonRealise').style.display = sondageChoisi ? 'block' : 'none';
+  $('planAide').textContent = sondageChoisi ? 'Touchez la position réelle de ' + sondageChoisi + ' sur le plan.' : 'Choisissez un sondage ci-dessous, puis touchez sa position réelle sur le plan.';
+}
+function symbole(ctx, s, x, y, r, couleurTexte){
+  ctx.lineWidth = r / 4;
+  if (s.startsWith('TR')){
+    ctx.fillStyle = '#ffd400'; ctx.strokeStyle = '#000';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - r * 1.5, y); ctx.lineTo(x + r * 1.5, y); ctx.moveTo(x, y - r * 1.5); ctx.lineTo(x, y + r * 1.5); ctx.stroke();
+  } else {
+    ctx.fillStyle = '#ffd400'; ctx.strokeStyle = '#000';
+    ctx.beginPath(); ctx.moveTo(x - r, y - r * .8); ctx.lineTo(x + r, y - r * .8); ctx.lineTo(x, y + r); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(s).width, tx = x + r * 1.8, ty = y - r * 1.4;
+  ctx.fillStyle = '#fff'; ctx.fillRect(tx - 4, ty - r, w + 8, r * 2);
+  ctx.strokeStyle = couleurTexte; ctx.lineWidth = 3; ctx.strokeRect(tx - 4, ty - r, w + 8, r * 2);
+  ctx.fillStyle = couleurTexte; ctx.fillText(s, tx, ty);
+}
+function couleurStatut(im){ return im.statut === 'déplacé' ? '#d9730d' : '#0d1b1e'; }
+function dessinerAnnotations(ctx, W){
+  const c = chantierCourant, r = Math.max(8, W / 90);
+  for (const s of sondages(c)){
+    const im = c.implantation[s]; if (!im || im.statut === 'non réalisé') continue;
+    symbole(ctx, s, im.x * W, im.y * (planImg.height * W / planImg.width), r, couleurStatut(im));
+  }
+}
+function dessinerPlan(){
+  const z = $('zonePlan'), cv = $('canvasPlan');
+  const largeur = (z.clientWidth || 360) * zoom, dpr = window.devicePixelRatio || 1;
+  const h = largeur * planImg.height / planImg.width;
+  cv.style.width = largeur + 'px'; cv.style.height = h + 'px';
+  cv.width = Math.round(largeur * dpr); cv.height = Math.round(h * dpr);
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.drawImage(planImg, 0, 0, largeur, h);
+  dessinerAnnotations(ctx, largeur);
+}
+$('btnZoomPlus').onclick = () => { zoom = Math.min(4, zoom * 1.5); dessinerPlan(); };
+$('btnZoomMoins').onclick = () => { zoom = Math.max(1, zoom / 1.5); dessinerPlan(); };
+$('canvasPlan').onclick = e => {
+  if (!sondageChoisi){ choisir('Choisissez d\'abord un sondage', [{texte:'OK', style:'secondaire'}]); return; }
+  const rc = e.currentTarget.getBoundingClientRect();
+  const x = (e.clientX - rc.left) / rc.width, y = (e.clientY - rc.top) / rc.height;
+  const s = sondageChoisi;
+  choisir(s + ' : position conforme au plan prévu ?', [
+    {texte:'OUI, CONFORME', action: () => poser(s, x, y, 'conforme', '')},
+    ...RAISONS.map(rs => ({texte:'DÉPLACÉ : ' + rs.toUpperCase(), style:'secondaire', action: () => poser(s, x, y, 'déplacé', rs)})),
+    {champ:'Autre raison (dictée possible)'},
+    {texte:'DÉPLACÉ : AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => poser(s, x, y, 'déplacé', ($('champLibre').value || 'autre').trim())},
+    {texte:'ANNULER', style:'discret'}
+  ]);
+};
+async function poser(s, x, y, statut, raison){
+  chantierCourant.implantation[s] = {x, y, statut, raison};
+  await sauverChantier(chantierCourant); vibrer();
+  sondageChoisi = null; majPuces(); dessinerPlan();
+}
+$('btnNonRealise').onclick = () => {
+  const s = sondageChoisi;
+  choisir(s + ' non réalisé : pourquoi ?', [
+    ...RAISONS.filter(r => !r.startsWith('Refus')).concat(['Refus dès la surface']).map(rs => ({texte:rs.toUpperCase(), style:'secondaire', action: () => poser(s, null, null, 'non réalisé', rs)})),
+    {champ:'Autre raison (dictée possible)'},
+    {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => poser(s, null, null, 'non réalisé', ($('champLibre').value || 'autre').trim())},
+    {texte:'ANNULER', style:'discret'}
+  ]);
+};
+$('btnPlanRetour').onclick = () => ouvrirChantier(chantierCourant);
+// Image finale du plan annoté, avec le tableau des écarts en dessous
+async function planAnnote(){
+  const c = chantierCourant; if (!c.planImage) return null;
+  planImg = await createImageBitmap(c.planImage);
+  const W = planImg.width, H = planImg.height, l = sondages(c);
+  const lignes = l.map(s => { const im = c.implantation[s]; return s + ' : ' + (!im ? 'position non indiquée' : im.statut === 'conforme' ? 'conforme au plan' : im.statut + ' (' + im.raison + ')'); });
+  const pas = Math.round(W / 45), bas = pas * (lignes.length + 2);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H + bas;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H + bas);
+  ctx.drawImage(planImg, 0, 0); dessinerAnnotations(ctx, W);
+  ctx.fillStyle = '#000'; ctx.font = 'bold ' + Math.round(pas * .7) + 'px sans-serif'; ctx.textBaseline = 'middle';
+  ctx.fillText('Implantation réelle - ' + c.nom + ' - ' + dateFR(c.date), pas, H + pas);
+  ctx.font = Math.round(pas * .6) + 'px sans-serif';
+  lignes.forEach((t, i) => { const im = c.implantation[l[i]]; ctx.fillStyle = !im ? '#b3261e' : im.statut === 'conforme' ? '#000' : im.statut === 'déplacé' ? '#d9730d' : '#b3261e'; ctx.fillText(t, pas, H + pas * (i + 2)); });
+  return new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.9));
+}
+
+/* ---------- Archive zip ---------- */
 const TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
 function crc32(o){ let c = 0xFFFFFFFF; for (let i = 0; i < o.length; i++) c = TABLE[(c ^ o[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
-async function fabriquerZip(entrees){   // entrees : [{chemin, blob, date}]
+async function fabriquerZip(entrees){
   const enc = new TextEncoder(), morceaux = [], central = []; let pos = 0;
   for (const e of entrees){
     const nom = enc.encode(e.chemin), data = new Uint8Array(await e.blob.arrayBuffer()), crc = crc32(data), d = e.date;
@@ -337,90 +595,105 @@ async function fabriquerZip(entrees){   // entrees : [{chemin, blob, date}]
 }
 
 /* ---------- Fin de chantier et envoi ---------- */
-function alerte(texte, ok){ const n = $('envNote'); n.textContent = texte; n.className = 'note' + (ok ? ' ok' : ''); n.style.display = texte ? 'block' : 'none'; }
+let zipPret = null;
+function note(texte, ok){ const n = $('envNote'); n.textContent = texte; n.className = 'note' + (ok ? ' ok' : ''); }
 function nomDossier(c){ return c.nom + ' - chantier ' + dateCompacte(c.date); }
 async function preparer(){
   const c = chantierCourant, photos = (await photosDe(c.id)).sort((a, b) => a.nom.localeCompare(b.nom));
   const racine = nomDossier(c) + '/';
   const fiche = {
     chantier: c.nom, date_chantier: c.date.slice(0, 10), tarieres: c.tarieres, penetros: c.penetros,
-    lien_proposition_technique: c.plan || null, version_appli: VERSION,
+    implantation: sondages(c).map(s => { const im = c.implantation[s] || {}; return {sondage: s, statut: im.statut || 'non indiqué', raison: im.raison || '', x: im.x ?? null, y: im.y ?? null}; }),
+    lien_proposition_technique: c.lienPT || null, version_appli: VERSION,
     photos: photos.map(p => ({fichier: p.nom, categorie: p.cat, dossier: infoCat(p.cat).dossier, heure: p.heure}))
   };
   const entrees = photos.map(p => ({chemin: racine + infoCat(p.cat).dossier + '/' + p.nom, blob: p.blob, date: new Date(p.heure)}));
+  const plan = await planAnnote();
+  if (plan) entrees.push({chemin: racine + 'Implantation/' + prefixe(c.nom) + '_PLAN_reel.jpg', blob: plan, date: new Date()});
   entrees.push({chemin: racine + 'chantier.json', blob: new Blob([JSON.stringify(fiche, null, 2)], {type:'application/json'}), date: new Date()});
-  const zip = await fabriquerZip(entrees);
-  return {
-    photos,
-    zip: new File([zip], nomDossier(c) + '.zip', {type:'application/zip'}),
-    images: photos.map(p => new File([p.blob], p.nom, {type:'image/jpeg'}))
-  };
+  return {photos, zip: new File([await fabriquerZip(entrees)], nomDossier(c) + '.zip', {type:'application/zip'})};
 }
 async function ouvrirEnvoi(){
   const c = chantierCourant;
-  $('envNom').textContent = c.nom; alerte('Préparation du dossier…');
+  $('envNom').textContent = c.nom; note('Préparation du dossier…');
   $('recap').innerHTML = ''; montrer('envoi');
-  fichiersPrets = await preparer();
-  const nb = {}; fichiersPrets.photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
-  const codes = ['SITE', 'PANO'];
-  for (let i = 1; i <= c.tarieres; i++) codes.push('TR' + i);
-  for (let i = 1; i <= c.penetros; i++) codes.push('P' + i);
-  codes.push('FICHE');
+  zipPret = await preparer();
+  const nb = {}; zipPret.photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
   let manques = 0;
-  for (const code of codes){
-    const n = nb[code] || 0, d = document.createElement('div'); d.className = 'ligne';
-    const facultatif = code === 'PANO';
-    if (!n && !facultatif) manques++;
-    d.innerHTML = '<span></span><b></b>';
-    d.firstChild.textContent = infoCat(code).nom;
-    d.lastChild.textContent = n ? n + ' photo' + (n > 1 ? 's' : '') : (facultatif ? '—' : 'MANQUE');
-    if (!n && !facultatif) d.lastChild.className = 'manque';
+  const ligne = (libelle, valeur, rouge) => {
+    const d = document.createElement('div'); d.className = 'ligne'; d.innerHTML = '<span></span><b></b>';
+    d.firstChild.textContent = libelle; d.lastChild.textContent = valeur; if (rouge){ d.lastChild.className = 'manque'; manques++; }
     $('recap').appendChild(d);
+  };
+  for (const code of ['SITE', 'PANO', ...sondages(c), 'FICHE']){
+    const n = nb[code] || 0, facultatif = code === 'PANO';
+    ligne(infoCat(code).nom, n ? n + ' photo' + (n > 1 ? 's' : '') : (facultatif ? '—' : 'MANQUE'), !n && !facultatif);
   }
-  const mo = (fichiersPrets.zip.size / 1048576).toFixed(1);
-  if (!fichiersPrets.photos.length) alerte('Aucune photo dans ce chantier.');
-  else if (manques) alerte('Il manque des photos (lignes en rouge). Vous pouvez retourner les prendre, ou envoyer quand même. Dossier : ' + mo + ' Mo.');
-  else alerte('Dossier complet : ' + fichiersPrets.photos.length + ' photos, ' + mo + ' Mo. Envoyez-le à ' + DESTINATAIRE + '.', true);
+  const nonPlaces = sondages(c).filter(s => !c.implantation[s]).length;
+  ligne("PLAN D'IMPLANTATION", !c.planImage ? 'non chargé' : nonPlaces ? nonPlaces + ' sondage(s) non positionné(s)' : 'complet', !c.planImage || nonPlaces > 0);
+  const mo = (zipPret.zip.size / 1048576).toFixed(1);
+  if (!zipPret.photos.length) note('Aucune photo dans ce chantier.');
+  else if (manques) note('Il manque des éléments (en rouge). Vous pouvez les compléter, ou envoyer quand même. Dossier : ' + mo + ' Mo.');
+  else note('Dossier complet : ' + zipPret.photos.length + ' photos, ' + mo + ' Mo.', true);
+  if (c.envoye && c.lienEnvoi) note('Déjà envoyé au bureau le ' + dateFR(c.dateEnvoi || c.date) + '. Retouchez ENVOYER pour renvoyer (photos ajoutées, ou lien expiré).', true);
 }
 $('btnFin').onclick = ouvrirEnvoi;
 $('btnEnvRetour').onclick = () => ouvrirChantier(chantierCourant);
-async function marquerEnvoye(){ chantierCourant.envoye = true; await sauverChantier(chantierCourant); }
-function telecharger(){
-  const a = document.createElement('a'); a.href = URL.createObjectURL(fichiersPrets.zip); a.download = fichiersPrets.zip.name;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+// Envoi en un clic (hébergeur public accepté par Kaliforage) : le zip est déposé en ligne (72 h),
+// puis le lien part par mail au bureau via ntfy. Le chantier reste dans le téléphone pour un re-envoi.
+const CLE = () => { try { return localStorage.getItem('cleBureau') || ''; } catch (e) { return ''; } };
+function deposer(url, form, extraire){
+  return new Promise((ok, ko) => {
+    const x = new XMLHttpRequest(); x.open('POST', url); x.timeout = 600000;
+    x.upload.onprogress = e => { if (e.lengthComputable) note('Envoi en cours : ' + Math.round(100 * e.loaded / e.total) + ' %… Gardez l\'appli ouverte.', true); };
+    x.onload = () => { try { const l = x.status < 300 && extraire(x.responseText); l ? ok(l) : ko(new Error('réponse inattendue')); } catch (e) { ko(e); } };
+    x.onerror = () => ko(new Error('pas de réseau')); x.ontimeout = () => ko(new Error('délai dépassé'));
+    x.send(form);
+  });
 }
-$('btnZip').onclick = async () => {
-  if (!fichiersPrets || !fichiersPrets.photos.length) return;
-  telecharger(); await marquerEnvoye();
-  alerte('Dossier enregistré dans « Téléchargements » : ' + fichiersPrets.zip.name + '. Joignez-le à un mail pour ' + DESTINATAIRE + '.', true);
-};
-$('btnPartager').onclick = async () => {
-  if (!fichiersPrets || !fichiersPrets.photos.length) return;
-  const c = chantierCourant, base = {title: 'Chantier ' + c.nom + ' - ' + dateFR(c.date), text: 'Chantier ' + c.nom + ' du ' + dateFR(c.date) + ' - ' + fichiersPrets.photos.length + ' photos. Destinataire : ' + DESTINATAIRE};
-  let lot = null;
-  if (navigator.canShare){
-    if (navigator.canShare({files: [fichiersPrets.zip]})) lot = [fichiersPrets.zip];
-    else if (navigator.canShare({files: fichiersPrets.images})) lot = fichiersPrets.images;
-  }
-  if (!lot){ telecharger(); await marquerEnvoye(); alerte('Le partage direct n\'est pas possible sur ce téléphone. Le dossier est enregistré dans « Téléchargements » : joignez-le à un mail pour ' + DESTINATAIRE + '.', true); return; }
+async function deposerZip(z){
   try {
-    await navigator.share({...base, files: lot});
-    await marquerEnvoye();
-    alerte('Partage lancé. Vérifiez que le mail est bien parti avant d\'effacer le chantier.', true);
+    const f = new FormData(); f.append('reqtype', 'fileupload'); f.append('time', '72h'); f.append('fileToUpload', z, z.name);
+    return await deposer('https://litterbox.catbox.moe/resources/internals/api.php', f, t => /^https:\/\//.test(t.trim()) ? t.trim() : null);
   } catch (e) {
-    if (e.name !== 'AbortError') alerte('Partage impossible (' + e.name + '). Utilisez « Enregistrer le dossier dans le téléphone ».');
+    const f = new FormData(); f.append('file', z, z.name);
+    return await deposer('https://upload.gofile.io/uploadfile', f, t => JSON.parse(t).data.downloadPage);
   }
-};
-let confirmation = 0;
-$('btnSupprimer').onclick = async () => {
-  const b = $('btnSupprimer');
-  if (Date.now() - confirmation > 4000){ confirmation = Date.now(); b.textContent = 'APPUYER ENCORE POUR TOUT EFFACER'; setTimeout(() => b.textContent = 'EFFACER CE CHANTIER DU TÉLÉPHONE', 4000); return; }
-  const id = chantierCourant.id, photos = await photosDe(id);
-  await req('photos', 'readwrite', s => { photos.forEach(p => s.delete(p.id)); });
-  await req('chantiers', 'readwrite', s => s.delete(id));
-  confirmation = 0; b.textContent = 'EFFACER CE CHANTIER DU TÉLÉPHONE';
-  afficherAccueil();
-};
+}
+let envoiEnCours = false, attendreReseau = false;
+async function envoyer(){
+  if (envoiEnCours || !zipPret || !zipPret.photos.length) return;
+  const c = chantierCourant, z = zipPret.zip, cle = CLE();
+  if (!cle){ note('Appli pas encore reliée au bureau : ouvrez une fois le lien du chantier dans l\'agenda (ou le lien d\'installation).'); return; }
+  if (!navigator.onLine){ attendreReseau = true; note('Pas de réseau. Le dossier partira tout seul dès que le réseau revient si l\'appli reste ouverte, sinon retouchez ENVOYER plus tard. Rien n\'est perdu.'); return; }
+  envoiEnCours = true; $('btnEnvoyer').disabled = true;
+  try {
+    const lien = await deposerZip(z);
+    const titre = 'Chantier ' + c.nom + ' du ' + dateFR(c.date);
+    const msg = {topic: cle, title: titre, email: DESTINATAIRE, click: lien, tags: ['package'],
+      message: titre + '\n' + zipPret.photos.length + ' photos - ' + (z.size / 1048576).toFixed(1) + ' Mo\n\nTélécharger le dossier (lien valable 72 h) :\n' + lien,
+      actions: [{action: 'view', label: 'Télécharger le zip', url: lien}]};
+    const r = await fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify(msg)});
+    if (!r.ok) throw new Error('mail refusé (' + r.status + ')');
+    c.envoye = true; c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString(); await sauverChantier(c); attendreReseau = false;
+    note('✔ ENVOYÉ au bureau. Vous pouvez fermer l\'appli.', true); vibrer();
+  } catch (e) {
+    attendreReseau = true;
+    note('Envoi pas encore fait (' + e.message + '). Retouchez ENVOYER quand il y a du réseau. Rien n\'est perdu.');
+  }
+  envoiEnCours = false; $('btnEnvoyer').disabled = false;
+}
+window.addEventListener('online', () => { if (attendreReseau && $('envoi').classList.contains('actif')) envoyer(); });
+$('btnEnvoyer').onclick = envoyer;
+$('btnSupprimer').onclick = () => choisir('Effacer ce chantier et toutes ses photos du téléphone ?', [
+  {texte:'OUI, TOUT EFFACER', style:'danger', action: async () => {
+    const id = chantierCourant.id, photos = await photosDe(id);
+    await req('photos', 'readwrite', s => { photos.forEach(p => s.delete(p.id)); });
+    await req('chantiers', 'readwrite', s => s.delete(id));
+    afficherAccueil();
+  }},
+  {texte:'NON', style:'secondaire'}
+]);
 
 /* ---------- Démarrage ---------- */
 (async () => {
@@ -428,7 +701,9 @@ $('btnSupprimer').onclick = async () => {
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   const p = new URLSearchParams(location.search), c = p.get('c');
-  if (c){ history.replaceState(null, '', location.pathname); await creerOuOuvrir(c, p.get('pt')); }
+  if (p.get('k')) { try { localStorage.setItem('cleBureau', p.get('k')); } catch (e) {} }
+  if (p.get('k') || c) history.replaceState(null, '', location.pathname);
+  if (c) await creerOuOuvrir(c, p.get('pt'));
   else await afficherAccueil();
 })();
 </script>
