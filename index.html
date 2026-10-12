@@ -157,7 +157,9 @@ p{margin:0;font-size:19px;line-height:1.35}
       <div id="zonePlan"><canvas id="canvasPlan"></canvas></div>
       <div class="duo"><button class="secondaire" id="btnZoomMoins">ZOOM −</button><button class="secondaire" id="btnZoomPlus">ZOOM +</button></div>
       <div class="puces" id="puces"></div>
+      <div class="duo"><button id="btnPlanTR">+ TARIÈRE</button><button id="btnPlanP">+ PÉNÉTRO</button></div>
       <button class="secondaire" id="btnDeplace" style="display:none">SONDAGE DÉPLACÉ</button>
+      <button class="secondaire" id="btnSupp">SONDAGE SUPPLÉMENTAIRE (hors plan)</button>
       <button class="danger" id="btnNonRealise" style="display:none">SONDAGE NON RÉALISÉ</button>
       <button class="discret" id="btnChangerPlan">Changer de plan</button>
     </div>
@@ -187,7 +189,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.4';
+const VERSION = '1.5';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -476,16 +478,16 @@ $('fichierPlan').onchange = async e => {
 function majPuces(){
   const c = chantierCourant, z = $('puces'); z.innerHTML = '';
   const l = sondages(c);
-  if (!l.length){ const p = document.createElement('p'); p.textContent = 'Ajoutez d\'abord les tarières et pénétros depuis l\'écran du chantier.'; z.appendChild(p); }
+  if (!l.length){ const p = document.createElement('p'); p.textContent = 'Touchez + TARIÈRE ou + PÉNÉTRO pour créer une étiquette.'; z.appendChild(p); }
   for (const s of l){
     const b = document.createElement('button'), im = c.implantation[s];
-    b.className = 'puce' + (im ? (im.statut === 'non réalisé' ? ' nonfait' : im.statut === 'déplacé' ? ' deplace' : ' place') : '') + (s === sondageChoisi ? ' choisi' : '');
+    b.className = 'puce' + (im ? (im.statut === 'non réalisé' ? ' nonfait' : im.statut === 'conforme' ? ' place' : ' deplace') : '') + (s === sondageChoisi ? ' choisi' : '');
     b.textContent = s; b.onclick = () => { sondageChoisi = s; deplacement = null; majPuces(); };
     z.appendChild(b);
   }
   const im = sondageChoisi && c.implantation[sondageChoisi];
   $('btnNonRealise').style.display = sondageChoisi ? 'block' : 'none';
-  $('btnDeplace').style.display = sondageChoisi ? 'block' : 'none';
+  $('btnDeplace').style.display = sondageChoisi && !(im && im.statut === 'ajouté') ? 'block' : 'none';
   $('btnDeplace').textContent = sondageChoisi + ' A ÉTÉ DÉPLACÉ';
   $('planAide').textContent = sondageChoisi ? 'Touchez à côté du point ' + sondageChoisi + ' du plan pour y poser son étiquette. S\'il a été déplacé, utilisez le bouton « ' + sondageChoisi + ' a été déplacé ».' : (l.length ? 'Toutes les étiquettes sont posées. Touchez un sondage pour corriger.' : '');
 }
@@ -512,13 +514,13 @@ function symbole(ctx, s, x, y, r, couleurTexte){
   ctx.strokeStyle = couleurTexte; ctx.lineWidth = 3; ctx.strokeRect(tx - 4, ty - r, w + 8, r * 2);
   ctx.fillStyle = couleurTexte; ctx.fillText(s, tx, ty);
 }
-function couleurStatut(im){ return im.statut === 'déplacé' ? '#d9730d' : '#0d1b1e'; }
+function couleurStatut(im){ return im.statut === 'déplacé' ? '#d9730d' : im.statut === 'ajouté' ? '#1565c0' : '#0d1b1e'; }
 function dessinerAnnotations(ctx, W){
   const c = chantierCourant, r = Math.max(8, W / 90);
   for (const s of sondages(c)){
     const im = c.implantation[s]; if (!im || im.statut === 'non réalisé') continue;
     const px = im.x * W, py = im.y * (planImg.height * W / planImg.width);
-    if (im.statut === 'déplacé') symbole(ctx, s, px, py, r, couleurStatut(im));
+    if (im.statut !== 'conforme') symbole(ctx, s, px, py, r, couleurStatut(im));
     else { ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; etiquette(ctx, s, px - (ctx.measureText(s).width + 8) / 2 + 4, py, r, '#0d1b1e'); }
   }
 }
@@ -539,13 +541,13 @@ $('canvasPlan').onclick = e => {
   const rc = e.currentTarget.getBoundingClientRect();
   const x = (e.clientX - rc.left) / rc.width, y = (e.clientY - rc.top) / rc.height;
   const s = sondageChoisi;
-  if (deplacement && deplacement.s === s){ const rs = deplacement.raison; deplacement = null; poser(s, x, y, 'déplacé', rs, true); return; }
+  if (deplacement && deplacement.s === s){ const d = deplacement; deplacement = null; poser(s, x, y, d.statut, d.raison, true); return; }
   poser(s, x, y, 'conforme', '', true);
 };
 let deplacement = null;   // {s, raison} : la prochaine touche sur le plan pose le nouveau point
 $('btnDeplace').onclick = () => {
   const s = sondageChoisi; if (!s) return;
-  const attendre = rs => { deplacement = {s, raison: rs}; $('planAide').textContent = 'Touchez sur le plan la NOUVELLE position de ' + s + ' : un symbole et son étiquette y seront dessinés.'; };
+  const attendre = rs => { deplacement = {s, raison: rs, statut: 'déplacé'};$('planAide').textContent = 'Touchez sur le plan la NOUVELLE position de ' + s + ' : un symbole et son étiquette y seront dessinés.'; };
   choisir(s + ' déplacé : pourquoi ?', [
     ...RAISONS.map(rs => ({texte:rs.toUpperCase(), style:'secondaire', action: () => attendre(rs)})),
     {champ:'Autre raison (dictée possible)'},
@@ -560,6 +562,28 @@ async function poser(s, x, y, statut, raison, suivant){
   sondageChoisi = suivant ? (sondages(chantierCourant).find(t => !chantierCourant.implantation[t]) || null) : null;
   majPuces(); dessinerPlan();
 }
+async function nouveauSondage(type){
+  const c = chantierCourant, champ = type === 'TR' ? 'tarieres' : 'penetros';
+  c[champ]++; await sauverChantier(c); return type + c[champ];
+}
+$('btnPlanTR').onclick = async () => { sondageChoisi = await nouveauSondage('TR'); deplacement = null; majPuces(); };
+$('btnPlanP').onclick = async () => { sondageChoisi = await nouveauSondage('P'); deplacement = null; majPuces(); };
+$('btnSupp').onclick = () => {
+  const raisons = ['Demande du client', 'Complément après refus', 'Terrain hétérogène'];
+  const creer = async (type, rs) => {
+    const s = await nouveauSondage(type); sondageChoisi = s; deplacement = {s, raison: rs, statut: 'ajouté'}; majPuces();
+    $('planAide').textContent = 'Touchez sur le plan la position du sondage supplémentaire ' + s + ' : un symbole et son étiquette y seront dessinés.';
+  };
+  const suite = type => choisir('Pourquoi ce sondage supplémentaire ?', [
+    ...raisons.map(rs => ({texte: rs.toUpperCase(), style:'secondaire', action: () => creer(type, rs)})),
+    {champ:'Autre raison (dictée possible)'},
+    {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => creer(type, ($('champLibre').value || 'autre').trim())},
+    {texte:'ANNULER', style:'discret'}
+  ]);
+  choisir('Sondage supplémentaire : quel type ?', [
+    {texte:'TARIÈRE', action: () => suite('TR')}, {texte:'PÉNÉTRO', action: () => suite('P')}, {texte:'ANNULER', style:'discret'}
+  ]);
+};
 $('btnNonRealise').onclick = () => {
   const s = sondageChoisi;
   choisir(s + ' non réalisé : pourquoi ?', [
@@ -575,7 +599,7 @@ async function planAnnote(){
   const c = chantierCourant; if (!c.planImage) return null;
   planImg = await createImageBitmap(c.planImage);
   const W = planImg.width, H = planImg.height, l = sondages(c);
-  const lignes = l.map(s => { const im = c.implantation[s]; return s + ' : ' + (!im ? 'position non indiquée' : im.statut === 'conforme' ? 'conforme au plan' : im.statut + ' (' + im.raison + ')'); });
+  const lignes = l.map(s => { const im = c.implantation[s]; return s + ' : ' + (!im ? 'position non indiquée' : im.statut === 'conforme' ? 'conforme au plan' : im.statut === 'ajouté' ? 'sondage supplémentaire (' + im.raison + ')' : im.statut + ' (' + im.raison + ')'); });
   const pas = Math.round(W / 45), bas = pas * (lignes.length + 2);
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H + bas;
   const ctx = cv.getContext('2d');
@@ -584,7 +608,7 @@ async function planAnnote(){
   ctx.fillStyle = '#000'; ctx.font = 'bold ' + Math.round(pas * .7) + 'px sans-serif'; ctx.textBaseline = 'middle';
   ctx.fillText('Implantation réelle - ' + c.nom + ' - ' + dateFR(c.date), pas, H + pas);
   ctx.font = Math.round(pas * .6) + 'px sans-serif';
-  lignes.forEach((t, i) => { const im = c.implantation[l[i]]; ctx.fillStyle = !im ? '#b3261e' : im.statut === 'conforme' ? '#000' : im.statut === 'déplacé' ? '#d9730d' : '#b3261e'; ctx.fillText(t, pas, H + pas * (i + 2)); });
+  lignes.forEach((t, i) => { const im = c.implantation[l[i]]; ctx.fillStyle = !im ? '#b3261e' : im.statut === 'conforme' ? '#000' : im.statut === 'déplacé' ? '#d9730d' : im.statut === 'ajouté' ? '#1565c0' : '#b3261e'; ctx.fillText(t, pas, H + pas * (i + 2)); });
   return new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.9));
 }
 
