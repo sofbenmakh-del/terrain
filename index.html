@@ -158,9 +158,12 @@ p{margin:0;font-size:19px;line-height:1.35}
       <div class="duo"><button class="secondaire" id="btnZoomMoins">ZOOM −</button><button class="secondaire" id="btnZoomPlus">ZOOM +</button></div>
       <div class="puces" id="puces"></div>
       <div class="duo"><button id="btnPlanTR">+ TARIÈRE</button><button id="btnPlanP">+ PÉNÉTRO</button></div>
+      <div class="duo" id="reglageEtiquette" style="display:none"><button class="secondaire" id="btnTailleMoins">TAILLE −</button><button class="secondaire" id="btnTaillePlus">TAILLE +</button></div>
+      <button class="secondaire" id="btnModeDeplacer">✋ DÉPLACER LES ÉTIQUETTES</button>
       <button class="secondaire" id="btnDeplace" style="display:none">SONDAGE DÉPLACÉ</button>
       <button class="secondaire" id="btnSupp">SONDAGE SUPPLÉMENTAIRE (hors plan)</button>
       <button class="danger" id="btnNonRealise" style="display:none">SONDAGE NON RÉALISÉ</button>
+      <button class="danger" id="btnRetirer" style="display:none">RETIRER DU PLAN</button>
       <button class="discret" id="btnChangerPlan">Changer de plan</button>
     </div>
     <button id="btnPlanRetour" style="background:var(--vert)">RETOUR</button>
@@ -189,7 +192,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.5';
+const VERSION = '1.6';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -233,10 +236,20 @@ function nettoyer(nom){ return nom.toUpperCase().replace(/[\\/:*?"<>|]/g, ' ').r
 function prefixe(nom){ const i = nom.indexOf(' '); return i < 0 ? nom : nom.slice(0, i) + '_' + nom.slice(i+1).replace(/ /g, '-'); }
 function infoCat(code){
   const f = FIXES.find(x => x.code === code); if (f) return f;
+  const e = extra(code);
+  if (e) return {code, nom: (e.type === 'TR' ? 'TARIÈRE ' : 'PÉNÉTRO ') + code, dossier: (e.type === 'TR' ? 'Tarières/' : 'Pénétros/') + code};
   if (code.startsWith('TR')) return {code, nom:'TARIÈRE ' + code.slice(2), dossier:'Tarières/' + code};
   return {code, nom:'PÉNÉTRO ' + code.slice(1), dossier:'Pénétros/' + code};
 }
-function sondages(c){ const l = []; for (let i = 1; i <= c.tarieres; i++) l.push('TR' + i); for (let i = 1; i <= c.penetros; i++) l.push('P' + i); return l; }
+// Sondages du chantier : numérotés (TR1, P1…) + sondages supplémentaires au nom libre (P1b…)
+function sondages(c){
+  const l = [], ex = c.extras || [];
+  for (let i = 1; i <= c.tarieres; i++) l.push('TR' + i); ex.filter(e => e.type === 'TR').forEach(e => l.push(e.nom));
+  for (let i = 1; i <= c.penetros; i++) l.push('P' + i); ex.filter(e => e.type === 'P').forEach(e => l.push(e.nom));
+  return l;
+}
+const extra = s => chantierCourant && (chantierCourant.extras || []).find(x => x.nom === s);
+function typeSondage(s){ const e = extra(s); return e ? e.type : (s.startsWith('TR') ? 'TR' : 'P'); }
 function montrer(id){ document.querySelectorAll('.ecran').forEach(e => e.classList.toggle('actif', e.id === id)); window.scrollTo(0, 0); }
 function vibrer(){ if (navigator.vibrate) navigator.vibrate(40); }
 function fermerFenetre(){ $('fenetre').classList.remove('ouverte'); }
@@ -245,7 +258,7 @@ function choisir(titre, boutons){
   const b = $('boite'); b.innerHTML = '';
   const h = document.createElement('h2'); h.textContent = titre; b.appendChild(h);
   for (const o of boutons){
-    if (o.champ){ const i = document.createElement('input'); i.type = 'text'; i.id = 'champLibre'; i.placeholder = o.champ; b.appendChild(i); continue; }
+    if (o.champ){ const i = document.createElement('input'); i.type = 'text'; i.id = o.id || 'champLibre'; i.placeholder = o.champ; if (o.valeur) i.value = o.valeur; b.appendChild(i); continue; }
     const x = document.createElement('button'); x.textContent = o.texte; if (o.style) x.className = o.style;
     x.onclick = () => { fermerFenetre(); o.action && o.action(); }; b.appendChild(x);
   }
@@ -303,8 +316,10 @@ async function ouvrirChantier(c){
   };
   tuile('SITE'); tuile('PANO', '', ouvrirPanorama);
   for (let i = 1; i <= c.tarieres; i++) tuile('TR' + i);
+  (c.extras || []).filter(e => e.type === 'TR').forEach(e => tuile(e.nom));
   ajout('+ TARIÈRE', 'tarieres');
   for (let i = 1; i <= c.penetros; i++) tuile('P' + i);
+  (c.extras || []).filter(e => e.type === 'P').forEach(e => tuile(e.nom));
   ajout('+ PÉNÉTRO', 'penetros');
   tuile('FICHE', 'large');
   const places = Object.keys(c.implantation).length;
@@ -389,8 +404,8 @@ async function ouvrirGalerie(cat, retour){
     const i = document.createElement('img'); i.src = URL.createObjectURL(ph.blob); i.onclick = () => ouvrirVisionneuse(ph); g.appendChild(i);
   }
   $('galVide').style.display = p.length ? 'none' : 'block';
-  const c = chantierCourant, dernier = cat === 'TR' + c.tarieres || cat === 'P' + c.penetros;
-  $('btnAnnulerSondage').style.display = !p.length && dernier && /^(TR|P)\d/.test(cat) ? 'block' : 'none';
+  const c = chantierCourant, dernier = cat === 'TR' + c.tarieres || cat === 'P' + c.penetros || !!extra(cat);
+  $('btnAnnulerSondage').style.display = !p.length && dernier && !FIXES.some(f => f.code === cat) ? 'block' : 'none';
   montrer('galerie');
 }
 $('btnGalRetour').onclick = () => {
@@ -400,7 +415,8 @@ $('btnGalRetour').onclick = () => {
 };
 $('btnAnnulerSondage').onclick = async () => {
   const c = chantierCourant;
-  if (catCourante.startsWith('TR')) c.tarieres--; else c.penetros--;
+  if (extra(catCourante)) c.extras = c.extras.filter(e => e.nom !== catCourante);
+  else if (catCourante.startsWith('TR')) c.tarieres--; else c.penetros--;
   delete c.implantation[catCourante];
   await sauverChantier(c); ouvrirChantier(c);
 };
@@ -459,7 +475,7 @@ async function ouvrirPlan(){
   if (!c.planImage){ $('planVide').style.display = 'flex'; $('planPlein').style.display = 'none'; montrer('plan'); return; }
   $('planVide').style.display = 'none'; $('planPlein').style.display = 'flex';
   planImg = await createImageBitmap(c.planImage);
-  sondageChoisi = sondages(c).find(t => !c.implantation[t]) || null; majPuces(); dessinerPlan();
+  sondageChoisi = null; deplacement = null; regleMode(false); majPuces(); dessinerPlan();
   montrer('plan');
 }
 $('btnOuvrirPT').onclick = () => window.open(chantierCourant.lienPT, '_blank');
@@ -485,11 +501,24 @@ function majPuces(){
     b.textContent = s; b.onclick = () => { sondageChoisi = s; deplacement = null; majPuces(); };
     z.appendChild(b);
   }
-  const im = sondageChoisi && c.implantation[sondageChoisi];
+  const im = sondageChoisi && c.implantation[sondageChoisi], pose = im && im.x != null;
   $('btnNonRealise').style.display = sondageChoisi ? 'block' : 'none';
   $('btnDeplace').style.display = sondageChoisi && !(im && im.statut === 'ajouté') ? 'block' : 'none';
   $('btnDeplace').textContent = sondageChoisi + ' A ÉTÉ DÉPLACÉ';
-  $('planAide').textContent = sondageChoisi ? 'Touchez à côté du point ' + sondageChoisi + ' du plan pour y poser son étiquette. S\'il a été déplacé, utilisez le bouton « ' + sondageChoisi + ' a été déplacé ».' : (l.length ? 'Toutes les étiquettes sont posées. Touchez un sondage pour corriger.' : '');
+  $('reglageEtiquette').style.display = pose ? 'flex' : 'none';
+  $('btnRetirer').style.display = im ? 'block' : 'none';
+  $('btnRetirer').textContent = 'RETIRER ' + sondageChoisi + ' DU PLAN';
+  $('planAide').textContent = modeDeplacer
+    ? 'Mode déplacement : faites glisser une étiquette avec le doigt. Touchez une étiquette pour la choisir puis l\'agrandir ou la réduire.'
+    : sondageChoisi
+      ? 'Touchez le plan à côté du point ' + sondageChoisi + ' pour y poser son étiquette.' + (pose ? ' Boutons TAILLE − / + pour la réduire ou l'agrandir.' : '')
+      : 'Choisissez un sondage ci-dessous, puis touchez le plan pour poser son étiquette.';
+}
+function regleMode(on){
+  modeDeplacer = on; glisse = null;
+  $('canvasPlan').style.touchAction = on ? 'none' : 'pan-x pan-y';
+  $('btnModeDeplacer').textContent = on ? '✋ DÉPLACEMENT ACTIVÉ : TOUCHEZ POUR TERMINER' : '✋ DÉPLACER LES ÉTIQUETTES';
+  $('btnModeDeplacer').className = on ? 'envoyer' : 'secondaire';
 }
 function etiquette(ctx, s, tx, ty, r, couleur){
   ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; ctx.textBaseline = 'middle';
@@ -500,7 +529,7 @@ function etiquette(ctx, s, tx, ty, r, couleur){
 }
 function symbole(ctx, s, x, y, r, couleurTexte){
   ctx.lineWidth = r / 4;
-  if (s.startsWith('TR')){
+  if (typeSondage(s) === 'TR'){
     ctx.fillStyle = '#ffd400'; ctx.strokeStyle = '#000';
     ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x - r * 1.5, y); ctx.lineTo(x + r * 1.5, y); ctx.moveTo(x, y - r * 1.5); ctx.lineTo(x, y + r * 1.5); ctx.stroke();
@@ -516,12 +545,16 @@ function symbole(ctx, s, x, y, r, couleurTexte){
 }
 function couleurStatut(im){ return im.statut === 'déplacé' ? '#d9730d' : im.statut === 'ajouté' ? '#1565c0' : '#0d1b1e'; }
 function dessinerAnnotations(ctx, W){
-  const c = chantierCourant, r = Math.max(8, W / 90);
+  const c = chantierCourant, r0 = Math.max(8, W / 90), ecran = ctx.canvas.id === 'canvasPlan';
   for (const s of sondages(c)){
-    const im = c.implantation[s]; if (!im || im.statut === 'non réalisé') continue;
-    const px = im.x * W, py = im.y * (planImg.height * W / planImg.width);
+    const im = c.implantation[s]; if (!im || im.x == null) continue;
+    const r = r0 * (im.taille || 1), px = im.x * W, py = im.y * (planImg.height * W / planImg.width);
     if (im.statut !== 'conforme') symbole(ctx, s, px, py, r, couleurStatut(im));
     else { ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; etiquette(ctx, s, px - (ctx.measureText(s).width + 8) / 2 + 4, py, r, '#0d1b1e'); }
+    if (ecran && s === sondageChoisi){   // repère du sondage choisi (pas dans l'image envoyée)
+      ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = '#d9730d'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(px, py, r * 3.2, 0, 7); ctx.stroke(); ctx.restore();
+    }
   }
 }
 function dessinerPlan(){
@@ -536,13 +569,49 @@ function dessinerPlan(){
 }
 $('btnZoomPlus').onclick = () => { zoom = Math.min(4, zoom * 1.5); dessinerPlan(); };
 $('btnZoomMoins').onclick = () => { zoom = Math.max(1, zoom / 1.5); dessinerPlan(); };
-$('canvasPlan').onclick = e => {
-  if (!sondageChoisi){ choisir('Choisissez d\'abord un sondage', [{texte:'OK', style:'secondaire'}]); return; }
-  const rc = e.currentTarget.getBoundingClientRect();
-  const x = (e.clientX - rc.left) / rc.width, y = (e.clientY - rc.top) / rc.height;
+let modeDeplacer = false, glisse = null;
+function pointPlan(e){ const rc = $('canvasPlan').getBoundingClientRect(); return {x: (e.clientX - rc.left) / rc.width, y: (e.clientY - rc.top) / rc.height, W: rc.width, H: rc.height}; }
+function etiquetteSous(p){   // étiquette la plus proche du doigt
+  const c = chantierCourant; let best = null, bd = 1e9;
+  for (const s of sondages(c)){
+    const im = c.implantation[s]; if (!im || im.x == null) continue;
+    const d = Math.hypot((im.x - p.x) * p.W, (im.y - p.y) * p.H), lim = Math.max(8, p.W / 90) * (im.taille || 1) * 3.5 + 12;
+    if (d < lim && d < bd){ bd = d; best = s; }
+  }
+  return best;
+}
+const cvPlan = $('canvasPlan');
+cvPlan.addEventListener('pointerdown', e => {
+  if (!modeDeplacer) return;
+  const s = etiquetteSous(pointPlan(e)); if (!s) return;
+  glisse = s; sondageChoisi = s; cvPlan.setPointerCapture(e.pointerId); e.preventDefault(); majPuces(); dessinerPlan();
+});
+cvPlan.addEventListener('pointermove', e => {
+  if (!glisse) return;
+  const p = pointPlan(e), im = chantierCourant.implantation[glisse];
+  im.x = Math.min(1, Math.max(0, p.x)); im.y = Math.min(1, Math.max(0, p.y)); dessinerPlan();
+});
+const finGlisse = async () => { if (!glisse) return; glisse = null; await sauverChantier(chantierCourant); vibrer(); };
+cvPlan.addEventListener('pointerup', finGlisse); cvPlan.addEventListener('pointercancel', finGlisse);
+cvPlan.onclick = e => {
+  const p = pointPlan(e);
+  if (modeDeplacer){ const s = etiquetteSous(p); if (s){ sondageChoisi = s; majPuces(); dessinerPlan(); } return; }
+  if (!sondageChoisi){ choisir('Choisissez d\'abord un sondage dans la liste sous le plan', [{texte:'OK', style:'secondaire'}]); return; }
   const s = sondageChoisi;
-  if (deplacement && deplacement.s === s){ const d = deplacement; deplacement = null; poser(s, x, y, d.statut, d.raison, true); return; }
-  poser(s, x, y, 'conforme', '', true);
+  if (deplacement && deplacement.s === s){ const d = deplacement; deplacement = null; poser(s, p.x, p.y, d.statut, d.raison); return; }
+  const avant = chantierCourant.implantation[s];
+  if (avant && avant.x != null && avant.statut !== 'conforme') poser(s, p.x, p.y, avant.statut, avant.raison);   // déplacé / ajouté : on garde son statut
+  else poser(s, p.x, p.y, 'conforme', '');
+};
+$('btnModeDeplacer').onclick = () => { regleMode(!modeDeplacer); majPuces(); };
+const changerTaille = async k => {
+  const im = sondageChoisi && chantierCourant.implantation[sondageChoisi]; if (!im) return;
+  im.taille = Math.min(4, Math.max(0.5, (im.taille || 1) * k)); await sauverChantier(chantierCourant); dessinerPlan();
+};
+$('btnTailleMoins').onclick = () => changerTaille(1 / 1.25);
+$('btnTaillePlus').onclick = () => changerTaille(1.25);
+$('btnRetirer').onclick = async () => {
+  delete chantierCourant.implantation[sondageChoisi]; await sauverChantier(chantierCourant); majPuces(); dessinerPlan();
 };
 let deplacement = null;   // {s, raison} : la prochaine touche sur le plan pose le nouveau point
 $('btnDeplace').onclick = () => {
@@ -555,12 +624,11 @@ $('btnDeplace').onclick = () => {
     {texte:'ANNULER', style:'discret'}
   ]);
 };
-async function poser(s, x, y, statut, raison, suivant){
-  chantierCourant.implantation[s] = {x, y, statut, raison};
+async function poser(s, x, y, statut, raison){
+  const avant = chantierCourant.implantation[s];
+  chantierCourant.implantation[s] = {x, y, statut, raison, taille: (avant && avant.taille) || 1};
   await sauverChantier(chantierCourant); vibrer();
-  // passe tout seul au sondage suivant pas encore étiqueté
-  sondageChoisi = suivant ? (sondages(chantierCourant).find(t => !chantierCourant.implantation[t]) || null) : null;
-  majPuces(); dessinerPlan();
+  majPuces(); dessinerPlan();   // le sondage reste choisi : pas de passage automatique au suivant
 }
 async function nouveauSondage(type){
   const c = chantierCourant, champ = type === 'TR' ? 'tarieres' : 'penetros';
@@ -570,11 +638,19 @@ $('btnPlanTR').onclick = async () => { sondageChoisi = await nouveauSondage('TR'
 $('btnPlanP').onclick = async () => { sondageChoisi = await nouveauSondage('P'); deplacement = null; majPuces(); };
 $('btnSupp').onclick = () => {
   const raisons = ['Demande du client', 'Complément après refus', 'Terrain hétérogène'];
+  const c = chantierCourant;
+  const proposition = type => { const base = type + Math.max(1, type === 'TR' ? c.tarieres : c.penetros), l = sondages(c);
+    for (const lettre of 'bcdefghijk') if (!l.includes(base + lettre)) return base + lettre; return base + 'x'; };
   const creer = async (type, rs) => {
-    const s = await nouveauSondage(type); sondageChoisi = s; deplacement = {s, raison: rs, statut: 'ajouté'}; majPuces();
+    const s = ($('champNom').value || '').replace(/[^A-Za-z0-9\-]/g, '');
+    if (!s){ alert('Donnez un nom au sondage (par exemple P1b).'); return; }
+    if (sondages(c).includes(s) || FIXES.some(f => f.code === s)){ alert('Le nom ' + s + ' existe déjà.'); return; }
+    c.extras = c.extras || []; c.extras.push({nom: s, type}); await sauverChantier(c);
+    sondageChoisi = s; deplacement = {s, raison: rs, statut: 'ajouté'}; regleMode(false); majPuces(); dessinerPlan();
     $('planAide').textContent = 'Touchez sur le plan la position du sondage supplémentaire ' + s + ' : un symbole et son étiquette y seront dessinés.';
   };
-  const suite = type => choisir('Pourquoi ce sondage supplémentaire ?', [
+  const suite = type => choisir('Nom et raison du sondage supplémentaire', [
+    {champ: 'Nom du sondage (ex. P1b)', id: 'champNom', valeur: proposition(type)},
     ...raisons.map(rs => ({texte: rs.toUpperCase(), style:'secondaire', action: () => creer(type, rs)})),
     {champ:'Autre raison (dictée possible)'},
     {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => creer(type, ($('champLibre').value || 'autre').trim())},
