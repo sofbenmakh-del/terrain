@@ -568,7 +568,7 @@ function etiquetteSous(p){   // étiquette la plus proche du doigt
   const c = chantierCourant; let best = null, bd = 1e9;
   for (const s of sondages(c)){
     const im = c.implantation[s]; if (!im || im.x == null) continue;
-    const d = Math.hypot((im.x - p.x) * p.W, (im.y - p.y) * p.H), lim = Math.max(8, p.W / 90) * (im.taille || 1) * 3.5 + 14;
+    const d = Math.hypot((im.x - p.x) * p.W, (im.y - p.y) * p.H), lim = Math.max(8, p.W / 90) * (im.taille || 1) * 2.5 + 6;
     if (d < lim && d < bd){ bd = d; best = s; }
   }
   return best;
@@ -581,7 +581,7 @@ cvPlan.addEventListener('pointerdown', e => {
   e.preventDefault(); cvPlan.setPointerCapture(e.pointerId);
   doigts.set(e.pointerId, {x: e.clientX, y: e.clientY});
   if (doigts.size === 1){
-    const p = pointPlan(e), s = etiquetteSous(p), im = s && chantierCourant.implantation[s], z = $('zonePlan');
+    const p = pointPlan(e), s = deplacement ? null : etiquetteSous(p), im = s && chantierCourant.implantation[s], z = $('zonePlan');   // nouvelle position en attente : le toucher pose, il ne sélectionne pas
     geste = {type: s ? 'etiquette' : 'plan', s, x0: e.clientX, y0: e.clientY, ix: im ? im.x : 0, iy: im ? im.y : 0,
              sl: z.scrollLeft, st: z.scrollTop, bouge: false, p};
     if (s && sondageChoisi !== s){ sondageChoisi = s; majPuces(); redessiner(); }
