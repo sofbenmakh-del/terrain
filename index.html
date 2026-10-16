@@ -43,13 +43,19 @@ p{margin:0;font-size:19px;line-height:1.35}
 #video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 #camHaut{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px;padding-top:calc(12px + env(safe-area-inset-top));background:linear-gradient(#000c,#0000);z-index:2}
 #camHaut .cat{font-size:30px;font-weight:900}
+#profBar{position:absolute;left:0;right:0;top:calc(66px + env(safe-area-inset-top));z-index:2;display:none;gap:8px;padding:0 10px;align-items:center}
+#profBar button{min-height:64px;height:64px;font-size:30px;padding:0;border-radius:14px}
+#profBar #btnProfMoins,#profBar #btnProfPlus{width:60px;flex:none;background:#fff;color:var(--bleu);font-size:34px}
+#profBar #profVal{flex:1;background:#fffc;color:#000;font-size:22px;white-space:nowrap;min-width:0}
+#profBar #btnEtiq{width:92px;flex:none;font-size:13px;background:var(--vert);line-height:1.15;padding:0 4px}
+#profBar #btnEtiq.off{background:#555}
 #declencheur{position:absolute;left:0;right:0;bottom:120px;top:45%;background:transparent;border-radius:0;z-index:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18px}
 #declencheur span{width:120px;height:120px;border-radius:50%;border:8px solid #fff;background:#ffffff55;display:block}
 #camBas{position:absolute;left:0;right:0;bottom:0;height:120px;display:flex;gap:10px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#000;z-index:2}
 #camBas button{min-height:0;height:100%;font-size:21px}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3;transition:opacity .25s}
 #flash.on{opacity:.85;transition:none}
-#vignette{position:absolute;right:12px;top:90px;width:84px;height:84px;object-fit:cover;border:3px solid #fff;border-radius:10px;z-index:2;display:none}
+#vignette{position:absolute;right:12px;top:190px;width:84px;height:84px;object-fit:cover;border:3px solid #fff;border-radius:10px;z-index:2;display:none}
 /* galerie */
 .vignettes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .vignettes img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:3px solid var(--gris);display:block}
@@ -105,6 +111,12 @@ p{margin:0;font-size:19px;line-height:1.35}
   <div id="flash"></div>
   <img id="vignette" alt="">
   <div id="camHaut"><span class="cat" id="camCat"></span></div>
+  <div id="profBar">
+    <button id="btnEtiq">ÉTIQUETTE<br>OUI</button>
+    <button id="btnProfMoins">−</button>
+    <button id="profVal">PROF. ?</button>
+    <button id="btnProfPlus">+</button>
+  </div>
   <button id="declencheur" aria-label="Prendre la photo"><span></span></button>
   <div id="camBas">
     <button class="secondaire" id="btnCamPhotos" style="flex:1">PHOTOS (0)</button>
@@ -192,7 +204,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.7';
+const VERSION = '1.8';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -258,7 +270,7 @@ function choisir(titre, boutons){
   const b = $('boite'); b.innerHTML = '';
   const h = document.createElement('h2'); h.textContent = titre; b.appendChild(h);
   for (const o of boutons){
-    if (o.champ){ const i = document.createElement('input'); i.type = 'text'; i.id = o.id || 'champLibre'; i.placeholder = o.champ; if (o.valeur) i.value = o.valeur; b.appendChild(i); continue; }
+    if (o.champ){ const i = document.createElement('input'); i.type = 'text'; i.id = o.id || 'champLibre'; i.placeholder = o.champ; if (o.valeur) i.value = o.valeur; if (o.mode) i.inputMode = o.mode; b.appendChild(i); continue; }
     const x = document.createElement('button'); x.textContent = o.texte; if (o.style) x.className = o.style;
     x.onclick = () => { fermerFenetre(); o.action && o.action(); }; b.appendChild(x);
   }
@@ -340,12 +352,33 @@ async function versCanvas(source, max){
   return cv;
 }
 const enJpeg = cv => new Promise(ok => cv.toBlob(ok, 'image/jpeg', QUALITE));
+// Marquage des photos de prélèvement des tarières : nom en haut à gauche, profondeur en haut à droite
+const estTariere = cat => !FIXES.some(f => f.code === cat) && typeSondage(cat) === 'TR';
+const formatProf = p => '-' + p.toFixed(2).replace('.', ',') + ' m/TA';
+function marquer(cv, gauche, droite){
+  const ctx = cv.getContext('2d'), t = Math.round(Math.min(cv.width, cv.height) * 0.07), m = Math.round(t * 0.4);
+  ctx.font = 'bold ' + t + 'px sans-serif'; ctx.textBaseline = 'middle';
+  const cadre = (txt, x, alignDroite) => {
+    const w = ctx.measureText(txt).width + m * 2, h = t + m * 1.4, x0 = alignDroite ? cv.width - x - w : x;
+    ctx.fillStyle = '#fff'; ctx.fillRect(x0, m, w, h);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(3, t / 10); ctx.strokeRect(x0, m, w, h);
+    ctx.fillStyle = '#000'; ctx.fillText(txt, x0 + m, m + h / 2);
+  };
+  if (gauche) cadre(gauche, m, false);
+  if (droite) cadre(droite, m, true);
+}
 async function enregistrer(source, cat, max){
-  const blob = await enJpeg(await versCanvas(source, max || TAILLE_MAX));
+  const cv = await versCanvas(source, max || TAILLE_MAX);
+  let prof = null, marque = false;
+  if (estTariere(cat) && etiquetteActive){
+    prof = (chantierCourant.profondeurs || {})[cat]; prof = prof == null ? null : prof; marque = true;
+    marquer(cv, cat, prof == null ? '' : formatProf(prof));
+  }
+  const blob = await enJpeg(cv);
   const photos = await photosCat(cat);
   const n = photos.reduce((m, p) => Math.max(m, p.n), 0) + 1;
   const nom = prefixe(chantierCourant.nom) + '_' + cat + '_' + z2(n) + '.jpg';
-  await req('photos', 'readwrite', s => s.add({chantier: chantierCourant.id, cat, n, nom, heure: new Date().toISOString(), blob}));
+  await req('photos', 'readwrite', s => s.add({chantier: chantierCourant.id, cat, n, nom, heure: new Date().toISOString(), blob, prof, marque}));
   if (chantierCourant.envoye){ chantierCourant.envoye = false; await sauverChantier(chantierCourant); }
 }
 
@@ -357,8 +390,35 @@ async function majCamera(){
   if (v.src) URL.revokeObjectURL(v.src);
   if (p.length){ v.src = URL.createObjectURL(p[p.length - 1].blob); v.style.display = 'block'; } else { v.removeAttribute('src'); v.style.display = 'none'; }
 }
+let etiquetteActive = true;
+function majProf(){
+  const tar = estTariere(catCourante);
+  $('profBar').style.display = tar ? 'flex' : 'none';
+  if (!tar) return;
+  const p = (chantierCourant.profondeurs || {})[catCourante];
+  $('btnEtiq').innerHTML = 'ÉTIQUETTE<br>' + (etiquetteActive ? 'OUI' : 'NON'); $('btnEtiq').className = etiquetteActive ? '' : 'off';
+  $('profVal').textContent = p == null ? 'PROFONDEUR ?' : formatProf(p);
+  ['btnProfMoins', 'btnProfPlus', 'profVal'].forEach(id => $(id).style.visibility = etiquetteActive ? 'visible' : 'hidden');
+}
+async function reglerProf(v){
+  const c = chantierCourant; c.profondeurs = c.profondeurs || {};
+  c.profondeurs[catCourante] = v == null ? null : Math.max(0, Math.round(v * 100) / 100);
+  majProf(); await sauverChantier(c);
+}
+$('btnProfPlus').onclick = () => { const p = (chantierCourant.profondeurs || {})[catCourante]; reglerProf(p == null ? 0.1 : p + 0.1); vibrer(); };
+$('btnProfMoins').onclick = () => { const p = (chantierCourant.profondeurs || {})[catCourante]; if (p != null) reglerProf(p <= 0.1 ? null : p - 0.1); vibrer(); };
+$('profVal').onclick = () => {
+  const p = (chantierCourant.profondeurs || {})[catCourante];
+  choisir('Profondeur du prélèvement de ' + catCourante + ' (en mètres)', [
+    {champ: 'ex. 0,80', id: 'champProf', valeur: p == null ? '' : String(p).replace('.', ','), mode: 'decimal'},
+    {texte: 'VALIDER', action: () => { const v = parseFloat(($('champProf').value || '').replace(',', '.').replace('-', '')); reglerProf(isNaN(v) ? null : v); }},
+    {texte: 'SANS PROFONDEUR', style: 'secondaire', action: () => reglerProf(null)},
+    {texte: 'ANNULER', style: 'discret'}
+  ]);
+};
+$('btnEtiq').onclick = () => { etiquetteActive = !etiquetteActive; majProf(); vibrer(); };
 async function ouvrirCamera(code){
-  catCourante = code; $('camCat').textContent = infoCat(code).nom;
+  catCourante = code; $('camCat').textContent = infoCat(code).nom; etiquetteActive = true; majProf();
   if (!flux){
     try { flux = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}}); }
     catch (e) { flux = null; }
@@ -748,7 +808,7 @@ async function preparer(){
     chantier: c.nom, date_chantier: c.date.slice(0, 10), tarieres: c.tarieres, penetros: c.penetros,
     implantation: sondages(c).map(s => { const im = c.implantation[s] || {}; return {sondage: s, statut: im.statut || 'non indiqué', raison: im.raison || '', x: im.x ?? null, y: im.y ?? null}; }),
     lien_proposition_technique: c.lienPT || null, version_appli: VERSION,
-    photos: photos.map(p => ({fichier: p.nom, categorie: p.cat, dossier: infoCat(p.cat).dossier, heure: p.heure}))
+    photos: photos.map(p => ({fichier: p.nom, categorie: p.cat, dossier: infoCat(p.cat).dossier, heure: p.heure, profondeur_m: p.prof ?? null}))
   };
   const entrees = photos.map(p => ({chemin: racine + infoCat(p.cat).dossier + '/' + p.nom, blob: p.blob, date: new Date(p.heure)}));
   const plan = await planAnnote();
