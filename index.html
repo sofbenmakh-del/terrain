@@ -43,6 +43,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 #video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 #camHaut{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px;padding-top:calc(12px + env(safe-area-inset-top));background:linear-gradient(#000c,#0000);z-index:2}
 #camHaut .cat{font-size:30px;font-weight:900}
+#btnObjectif{width:auto;min-height:52px;height:52px;font-size:19px;padding:0 14px;background:#fffd;color:#000;border-radius:26px;display:none}
 #profBar{position:absolute;left:0;right:0;top:calc(66px + env(safe-area-inset-top));z-index:2;display:none;gap:8px;padding:0 10px;align-items:center}
 #profBar button{min-height:64px;height:64px;font-size:30px;padding:0;border-radius:14px}
 #profBar #btnProfMoins,#profBar #btnProfPlus{width:60px;flex:none;background:#fff;color:var(--bleu);font-size:34px}
@@ -58,6 +59,8 @@ p{margin:0;font-size:19px;line-height:1.35}
 #vignette{position:absolute;right:12px;top:190px;width:84px;height:84px;object-fit:cover;border:3px solid #fff;border-radius:10px;z-index:2;display:none}
 /* galerie */
 .vignettes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vg{position:relative}
+.vg span{position:absolute;left:6px;top:6px;background:#000b;color:#fff;font-size:13px;font-weight:700;padding:2px 7px;border-radius:6px}
 .vignettes img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:3px solid var(--gris);display:block}
 #grande{width:100%;max-height:60vh;object-fit:contain;background:#000;border-radius:12px}
 /* plan */
@@ -110,7 +113,7 @@ p{margin:0;font-size:19px;line-height:1.35}
   <video id="video" playsinline autoplay muted></video>
   <div id="flash"></div>
   <img id="vignette" alt="">
-  <div id="camHaut"><span class="cat" id="camCat"></span></div>
+  <div id="camHaut"><span class="cat" id="camCat"></span><button id="btnObjectif">0,5x</button></div>
   <div id="profBar">
     <button id="btnEtiq">ÉTIQUETTE<br>OUI</button>
     <button id="btnProfMoins">−</button>
@@ -126,8 +129,9 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <!-- PHOTOS D'UNE CATÉGORIE -->
 <section class="ecran" id="galerie">
-  <header><div class="petit">Photos · touchez pour supprimer</div><div class="titre" id="galTitre"></div></header>
+  <header><div class="petit" id="galSous">Photos · touchez une photo pour la gérer</div><div class="titre" id="galTitre"></div></header>
   <main>
+    <button class="secondaire" id="btnGalAjouter">+ AJOUTER DES PHOTOS DU TÉLÉPHONE</button>
     <div class="vignettes" id="galGrille"></div>
     <p id="galVide" style="display:none">Aucune photo.</p>
     <button class="danger" id="btnAnnulerSondage" style="display:none">SUPPRIMER CE SONDAGE (aucune photo)</button>
@@ -140,6 +144,7 @@ p{margin:0;font-size:19px;line-height:1.35}
   <header><div class="petit">Photo</div><div class="titre" id="visTitre"></div></header>
   <main>
     <img id="grande" alt="">
+    <button class="secondaire" id="btnChangerCat">CHANGER DE CATÉGORIE</button>
     <button class="danger" id="btnSupprPhoto">SUPPRIMER CETTE PHOTO</button>
     <button id="btnVisRetour" style="background:var(--vert)">GARDER ET REVENIR</button>
   </main>
@@ -149,9 +154,9 @@ p{margin:0;font-size:19px;line-height:1.35}
 <section class="ecran" id="panorama">
   <header><div class="petit">Panorama</div><div class="titre" id="panoTitre">PANORAMA</div></header>
   <main>
-    <button class="envoyer" id="btnPanoCamera">PRENDRE LE PANORAMA</button>
-    <div class="note">L'appareil photo du téléphone s'ouvre : choisissez le mode <b>Panorama</b> s'il est proposé, prenez la vue, validez. Elle arrive ici toute seule.</div>
-    <button class="secondaire" id="btnPanoAjouter">IMPORTER UN PANORAMA DÉJÀ PRIS</button>
+    <button class="envoyer" id="btnPanoCamera">1. OUVRIR L'APPAREIL PHOTO DU TÉLÉPHONE</button>
+    <div class="note" id="panoAide">L'appareil photo habituel du téléphone s'ouvre. Choisissez le mode <b>Panorama</b> (souvent dans « Plus »), prenez la vue, puis revenez ici.</div>
+    <button id="btnPanoAjouter">2. AJOUTER LE PANORAMA PRIS</button>
     <button class="secondaire" id="btnPanoVoir">VOIR / SUPPRIMER (0)</button>
     <button id="btnPanoRetour" style="background:var(--vert)">RETOUR</button>
   </main>
@@ -189,6 +194,7 @@ p{margin:0;font-size:19px;line-height:1.35}
     <div id="recap"></div>
     <div class="note" id="envNote"></div>
     <button class="envoyer" id="btnEnvoyer">ENVOYER</button>
+    <button class="secondaire" id="btnReessayer" style="display:none">RÉESSAYER LA PRÉPARATION</button>
     <button class="secondaire" id="btnEnvRetour">RETOUR AU CHANTIER</button>
     <button class="danger" id="btnSupprimer">EFFACER CE CHANTIER DU TÉLÉPHONE</button>
   </main>
@@ -199,12 +205,13 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <input type="file" id="fichierPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="fichierGalerie" accept="image/*" multiple hidden>
+<input type="file" id="fichierAjout" accept="image/*" multiple hidden>
 <input type="file" id="fichierPano" accept="image/*" capture="environment" hidden>
 <input type="file" id="fichierPlan" accept="application/pdf,image/*" hidden>
 
 <script>
 'use strict';
-const VERSION = '1.8';
+const VERSION = '1.9';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -334,6 +341,10 @@ async function ouvrirChantier(c){
   (c.extras || []).filter(e => e.type === 'P').forEach(e => tuile(e.nom));
   ajout('+ PÉNÉTRO', 'penetros');
   tuile('FICHE', 'large');
+  const ta = document.createElement('button'); ta.className = 'tuile large' + (photos.length ? ' fait' : '');
+  ta.innerHTML = '<span>ALBUM DU CHANTIER</span><span class="nb"></span>';
+  ta.lastChild.textContent = photos.length ? 'toutes les photos (' + photos.length + ') · ajouter depuis le téléphone' : 'ajouter des photos du téléphone';
+  ta.onclick = () => ouvrirGalerie('*', 'chantier'); g.appendChild(ta);
   const places = Object.keys(c.implantation).length;
   const tp = tuile('PLAN', 'large', ouvrirPlan, c.planImage ? (places ? places + ' sondage' + (places > 1 ? 's' : '') + ' positionné' + (places > 1 ? 's' : '') : 'plan chargé') : '');
   tp.firstChild.textContent = "PLAN D'IMPLANTATION"; if (!c.planImage) tp.lastChild.textContent = 'à annoter';
@@ -367,10 +378,10 @@ function marquer(cv, gauche, droite){
   if (gauche) cadre(gauche, m, false);
   if (droite) cadre(droite, m, true);
 }
-async function enregistrer(source, cat, max){
+async function enregistrer(source, cat, max, sansMarque){
   const cv = await versCanvas(source, max || TAILLE_MAX);
   let prof = null, marque = false;
-  if (estTariere(cat) && etiquetteActive){
+  if (estTariere(cat) && etiquetteActive && !sansMarque){
     prof = (chantierCourant.profondeurs || {})[cat]; prof = prof == null ? null : prof; marque = true;
     marquer(cv, cat, prof == null ? '' : formatProf(prof));
   }
@@ -420,15 +431,53 @@ $('btnEtiq').onclick = () => { etiquetteActive = !etiquetteActive; majProf(); vi
 async function ouvrirCamera(code){
   catCourante = code; $('camCat').textContent = infoCat(code).nom; etiquetteActive = true; majProf();
   if (!flux){
-    try { flux = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}}); }
+    const choix = objectifs && objectifs.length > 1 && objectifIdx ? {deviceId: {exact: objectifs[objectifIdx].deviceId}} : {facingMode: {ideal: 'environment'}};
+    try { flux = await navigator.mediaDevices.getUserMedia({audio:false, video:{...choix, width:{ideal:3840}, height:{ideal:2160}}}); }
     catch (e) { flux = null; }
   }
   if (!flux){ $('fichierPhoto').click(); return; }
   $('video').srcObject = flux;
+  preparerObjectif();
   await majCamera();
   montrer('camera');
   if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {});
 }
+// Objectif grand angle (0,5x) : zoom < 1 si le téléphone le permet, sinon changement de caméra arrière
+let objectifs = null, objectifIdx = 0, zoomMini = null, grandAngle = false;
+async function preparerObjectif(){
+  const b = $('btnObjectif'); b.style.display = 'none';
+  try {
+    const piste = flux.getVideoTracks()[0], caps = piste.getCapabilities ? piste.getCapabilities() : {};
+    if (caps.zoom && caps.zoom.min < 1){
+      zoomMini = caps.zoom.min; b.style.display = 'block';
+      if (grandAngle) await piste.applyConstraints({advanced: [{zoom: zoomMini}]});
+      b.textContent = grandAngle ? '1x' : '0,5x'; return;
+    }
+    zoomMini = null;
+    if (!objectifs){
+      const l = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      const arriere = l.filter(d => /back|arri|rear|environment/i.test(d.label));
+      objectifs = arriere.length > 1 ? arriere : [];
+      const actuel = piste.getSettings().deviceId; objectifIdx = Math.max(0, objectifs.findIndex(d => d.deviceId === actuel));
+    }
+    if (objectifs.length > 1){ b.style.display = 'block'; b.textContent = 'OBJECTIF ' + (objectifIdx + 1) + '/' + objectifs.length; }
+  } catch (e) { b.style.display = 'none'; }
+}
+$('btnObjectif').onclick = async () => {
+  vibrer();
+  try {
+    if (zoomMini != null){
+      grandAngle = !grandAngle;
+      await flux.getVideoTracks()[0].applyConstraints({advanced: [{zoom: grandAngle ? zoomMini : 1}]});
+      $('btnObjectif').textContent = grandAngle ? '1x' : '0,5x'; return;
+    }
+    if (!objectifs || objectifs.length < 2) return;
+    objectifIdx = (objectifIdx + 1) % objectifs.length;
+    flux.getTracks().forEach(t => t.stop());
+    flux = await navigator.mediaDevices.getUserMedia({audio: false, video: {deviceId: {exact: objectifs[objectifIdx].deviceId}, width: {ideal: 3840}, height: {ideal: 2160}}});
+    $('video').srcObject = flux; preparerObjectif();
+  } catch (e) { alert('Changement d\'objectif impossible sur ce téléphone.'); }
+};
 function couperCamera(){ if (flux){ flux.getTracks().forEach(t => t.stop()); flux = null; } $('video').srcObject = null; }
 let enCours = false;
 $('declencheur').onclick = async () => {
@@ -455,15 +504,24 @@ $('btnCamPhotos').onclick = () => { couperCamera(); ouvrirGalerie(catCourante, '
 $('fichierPhoto').onchange = async e => { for (const f of e.target.files) await enregistrer(f, catCourante); e.target.value = ''; ouvrirChantier(chantierCourant); };
 
 /* ---------- Galerie : voir et supprimer n'importe quelle photo ---------- */
+const ordreCats = c => ['SITE', 'PANO', ...sondages(c), 'FICHE'];
 async function ouvrirGalerie(cat, retour){
   catCourante = cat; retourGalerie = retour;
-  $('galTitre').textContent = infoCat(cat).nom;
-  const p = await photosCat(cat), g = $('galGrille');
+  const global = cat === '*', c0 = chantierCourant, ordre = ordreCats(c0);
+  $('galTitre').textContent = global ? 'ALBUM DU CHANTIER' : infoCat(cat).nom;
+  let p = global ? await photosDe(c0.id) : await photosCat(cat);
+  if (global) p.sort((a, b) => ((ordre.indexOf(a.cat) + 1 || 99) - (ordre.indexOf(b.cat) + 1 || 99)) || a.n - b.n);
+  $('galSous').textContent = (global ? p.length + ' photos · ' : '') + 'touchez une photo pour la gérer';
+  const g = $('galGrille');
   g.querySelectorAll('img').forEach(i => URL.revokeObjectURL(i.src)); g.innerHTML = '';
   for (const ph of p){
-    const i = document.createElement('img'); i.src = URL.createObjectURL(ph.blob); i.onclick = () => ouvrirVisionneuse(ph); g.appendChild(i);
+    const d = document.createElement('div'), i = document.createElement('img'); d.className = 'vg';
+    i.src = URL.createObjectURL(ph.blob); i.loading = 'lazy'; i.onclick = () => ouvrirVisionneuse(ph); d.appendChild(i);
+    if (global){ const t = document.createElement('span'); t.textContent = ph.cat === 'SITE' ? 'Site' : ph.cat === 'PANO' ? 'Panorama' : ph.cat === 'FICHE' ? 'Fiche' : ph.cat; d.appendChild(t); }
+    g.appendChild(d);
   }
   $('galVide').style.display = p.length ? 'none' : 'block';
+  if (global){ $('btnAnnulerSondage').style.display = 'none'; montrer('galerie'); return; }
   const c = chantierCourant, dernier = cat === 'TR' + c.tarieres || cat === 'P' + c.penetros || !!extra(cat);
   $('btnAnnulerSondage').style.display = !p.length && dernier && !FIXES.some(f => f.code === cat) ? 'block' : 'none';
   montrer('galerie');
@@ -483,10 +541,34 @@ $('btnAnnulerSondage').onclick = async () => {
 let photoVue = null;
 function ouvrirVisionneuse(ph){
   photoVue = ph; $('visTitre').textContent = infoCat(ph.cat).nom + ' · n° ' + ph.n;
+  $('btnChangerCat').style.display = 'block';
   const g = $('grande'); if (g.src) URL.revokeObjectURL(g.src); g.src = URL.createObjectURL(ph.blob);
   montrer('visionneuse');
 }
 $('btnVisRetour').onclick = () => ouvrirGalerie(catCourante, retourGalerie);
+// Choix d'une catégorie (pour les photos ajoutées depuis le téléphone ou reclassées)
+function choisirCategorie(titre, suite){
+  choisir(titre, [...ordreCats(chantierCourant).map(code => ({texte: infoCat(code).nom, style: 'secondaire', action: () => suite(code)})), {texte: 'ANNULER', style: 'discret'}]);
+}
+async function prochainNumero(cat){ return (await photosCat(cat)).reduce((m, p) => Math.max(m, p.n), 0) + 1; }
+$('btnChangerCat').onclick = () => choisirCategorie('Ranger cette photo dans :', async code => {
+  if (code === photoVue.cat) return;
+  const n = await prochainNumero(code);
+  photoVue.cat = code; photoVue.n = n; photoVue.nom = prefixe(chantierCourant.nom) + '_' + code + '_' + z2(n) + '.jpg';
+  await req('photos', 'readwrite', st => st.put(photoVue)); vibrer();
+  ouvrirGalerie(catCourante, retourGalerie);
+});
+$('btnGalAjouter').onclick = () => $('fichierAjout').click();
+$('fichierAjout').onchange = async e => {
+  const fichiers = [...e.target.files]; e.target.value = ''; if (!fichiers.length) return;
+  const ajouter = async code => {
+    $('galSous').textContent = 'Ajout de ' + fichiers.length + ' photo(s)…';
+    for (const f of fichiers){ try { await enregistrer(f, code, code === 'PANO' ? 4096 : TAILLE_MAX, true); } catch (err) {} }
+    vibrer(); ouvrirGalerie(catCourante, retourGalerie);
+  };
+  if (catCourante === '*') choisirCategorie('Dans quelle catégorie ranger ces ' + fichiers.length + ' photo(s) ?', ajouter);
+  else ajouter(catCourante);
+};
 $('btnSupprPhoto').onclick = () => choisir('Supprimer cette photo ?', [
   {texte:'OUI, SUPPRIMER', style:'danger', action: async () => { await req('photos', 'readwrite', s => s.delete(photoVue.id)); vibrer(); ouvrirGalerie(catCourante, retourGalerie); }},
   {texte:'NON, GARDER', style:'secondaire'}
@@ -499,13 +581,24 @@ async function ouvrirPanorama(){
   $('btnPanoVoir').textContent = 'VOIR / SUPPRIMER (' + n + ')';
   montrer('panorama');
 }
-$('btnPanoCamera').onclick = () => { catCourante = 'PANO'; $('fichierPano').click(); };
+let panoLance = false;
+$('btnPanoCamera').onclick = () => {
+  catCourante = 'PANO'; panoLance = true;
+  location.href = 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end';
+  setTimeout(() => { if (!document.hidden && panoLance) $('panoAide').innerHTML = 'Si l\'appareil photo ne s\'est pas ouvert : quittez l\'appli, ouvrez l\'appareil photo du téléphone en mode <b>Panorama</b>, prenez la vue, puis revenez ici et touchez <b>2. AJOUTER LE PANORAMA PRIS</b>.'; }, 2500);
+};
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && panoLance && $('panorama').classList.contains('actif')){
+    panoLance = false; $('btnPanoAjouter').className = 'envoyer';
+    $('panoAide').innerHTML = 'Touchez maintenant <b>2. AJOUTER LE PANORAMA PRIS</b> et choisissez-le (c\'est la photo la plus récente).';
+  }
+});
 $('fichierPano').onchange = async e => { for (const f of e.target.files) await enregistrer(f, 'PANO', 4096); e.target.value = ''; vibrer(); ouvrirPanorama(); };
-$('btnPanoAjouter').onclick = () => { catCourante = 'PANO'; $('fichierGalerie').click(); };
+$('btnPanoAjouter').onclick = () => { catCourante = 'PANO'; $('btnPanoAjouter').className = ''; $('fichierGalerie').click(); };
 $('btnPanoVoir').onclick = () => ouvrirGalerie('PANO', 'panorama');
 $('btnPanoRetour').onclick = () => ouvrirChantier(chantierCourant);
 $('fichierGalerie').onchange = async e => {
-  for (const f of e.target.files) await enregistrer(f, catCourante, 4096);   // panoramas : plus large
+  for (const f of e.target.files) await enregistrer(f, catCourante, 4096, true);   // panoramas : plus large
   e.target.value = ''; ouvrirPanorama();
 };
 
@@ -771,17 +864,22 @@ async function planAnnote(){
 /* ---------- Archive zip ---------- */
 const TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
 function crc32(o){ let c = 0xFFFFFFFF; for (let i = 0; i < o.length; i++) c = TABLE[(c ^ o[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
-async function fabriquerZip(entrees){
-  const enc = new TextEncoder(), morceaux = [], central = []; let pos = 0;
+async function fabriquerZip(entrees, progres, ecartes){
+  const enc = new TextEncoder(), morceaux = [], central = []; let pos = 0, k = 0;
   for (const e of entrees){
-    const nom = enc.encode(e.chemin), data = new Uint8Array(await e.blob.arrayBuffer()), crc = crc32(data), d = e.date;
+    k++; if (progres) progres(k, entrees.length);
+    await new Promise(ok => setTimeout(ok, 0));   // laisse l'écran se mettre à jour
+    let crc;
+    try { crc = crc32(new Uint8Array(await e.blob.arrayBuffer())); }
+    catch (err) { if (ecartes) ecartes.push(e.chemin.split('/').pop()); continue; }   // fichier illisible : écarté, l'envoi continue
+    const nom = enc.encode(e.chemin), data = {length: e.blob.size}, d = e.date;
     const heure = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
     const jour = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
     const loc = new DataView(new ArrayBuffer(30));
     loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true); loc.setUint16(6, 0x0800, true);
     loc.setUint16(10, heure, true); loc.setUint16(12, jour, true); loc.setUint32(14, crc, true);
     loc.setUint32(18, data.length, true); loc.setUint32(22, data.length, true); loc.setUint16(26, nom.length, true);
-    morceaux.push(loc, nom, data);
+    morceaux.push(loc, nom, e.blob);   // le contenu reste un Blob : pas de copie en mémoire
     const cen = new DataView(new ArrayBuffer(46));
     cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
     cen.setUint16(12, heure, true); cen.setUint16(14, jour, true); cen.setUint32(16, crc, true);
@@ -792,7 +890,8 @@ async function fabriquerZip(entrees){
   }
   const tailleCentral = central.reduce((s, x) => s + x.byteLength, 0);
   const fin = new DataView(new ArrayBuffer(22));
-  fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, entrees.length, true); fin.setUint16(10, entrees.length, true);
+  const nb = central.length / 2;
+  fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, nb, true); fin.setUint16(10, nb, true);
   fin.setUint32(12, tailleCentral, true); fin.setUint32(16, pos, true);
   return new Blob([...morceaux, ...central, fin], {type:'application/zip'});
 }
@@ -801,8 +900,13 @@ async function fabriquerZip(entrees){
 let zipPret = null;
 function note(texte, ok){ const n = $('envNote'); n.textContent = texte; n.className = 'note' + (ok ? ' ok' : ''); }
 function nomDossier(c){ return c.nom + ' - chantier ' + dateCompacte(c.date); }
-async function preparer(){
-  const c = chantierCourant, photos = (await photosDe(c.id)).sort((a, b) => a.nom.localeCompare(b.nom));
+async function preparer(progres){
+  const c = chantierCourant, toutes = (await photosDe(c.id)).sort((a, b) => a.nom.localeCompare(b.nom));
+  // une photo illisible (mémoire du téléphone abîmée) ne bloque jamais l'envoi : elle est écartée et signalée
+  const photos = [], illisibles = [];
+  for (const p of toutes){
+    try { if (!p.blob || !p.blob.size) throw 0; await p.blob.slice(0, 16).arrayBuffer(); photos.push(p); } catch (e) { illisibles.push(p.nom); }
+  }
   const racine = nomDossier(c) + '/';
   const fiche = {
     chantier: c.nom, date_chantier: c.date.slice(0, 10), tarieres: c.tarieres, penetros: c.penetros,
@@ -811,16 +915,22 @@ async function preparer(){
     photos: photos.map(p => ({fichier: p.nom, categorie: p.cat, dossier: infoCat(p.cat).dossier, heure: p.heure, profondeur_m: p.prof ?? null}))
   };
   const entrees = photos.map(p => ({chemin: racine + infoCat(p.cat).dossier + '/' + p.nom, blob: p.blob, date: new Date(p.heure)}));
-  const plan = await planAnnote();
+  let plan = null;
+  try { plan = await planAnnote(); } catch (e) { illisibles.push('plan d\'implantation'); }
   if (plan) entrees.push({chemin: racine + 'Implantation/' + prefixe(c.nom) + '_PLAN_reel.jpg', blob: plan, date: new Date()});
   entrees.push({chemin: racine + 'chantier.json', blob: new Blob([JSON.stringify(fiche, null, 2)], {type:'application/json'}), date: new Date()});
-  return {photos, zip: new File([await fabriquerZip(entrees)], nomDossier(c) + '.zip', {type:'application/zip'})};
+  return {photos, illisibles, zip: new File([await fabriquerZip(entrees, progres, illisibles)], nomDossier(c) + '.zip', {type:'application/zip'})};
 }
 async function ouvrirEnvoi(){
   const c = chantierCourant;
-  $('envNom').textContent = c.nom; note('Préparation du dossier…');
-  $('recap').innerHTML = ''; montrer('envoi');
-  zipPret = await preparer();
+  $('envNom').textContent = c.nom; note('Préparation du dossier…'); zipPret = null;
+  $('recap').innerHTML = ''; $('btnReessayer').style.display = 'none'; $('btnEnvoyer').disabled = true; montrer('envoi');
+  try {
+    zipPret = await preparer((k, n) => note('Préparation du dossier : ' + k + ' / ' + n + '…'));
+  } catch (e) {
+    note('La préparation a échoué (' + (e && e.message || e) + '). Touchez RÉESSAYER. Vos photos sont toujours dans le téléphone.');
+    $('btnReessayer').style.display = 'block'; return;
+  } finally { $('btnEnvoyer').disabled = false; }
   const nb = {}; zipPret.photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
   let manques = 0;
   const ligne = (libelle, valeur, rouge) => {
@@ -838,9 +948,11 @@ async function ouvrirEnvoi(){
   if (!zipPret.photos.length) note('Aucune photo dans ce chantier.');
   else if (manques) note('Il manque des éléments (en rouge). Vous pouvez les compléter, ou envoyer quand même. Dossier : ' + mo + ' Mo.');
   else note('Dossier complet : ' + zipPret.photos.length + ' photos, ' + mo + ' Mo.', true);
+  if (zipPret.illisibles.length) note('Attention : ' + zipPret.illisibles.length + ' élément(s) illisible(s) écarté(s) : ' + zipPret.illisibles.join(', ') + '. Le reste du dossier est prêt (' + mo + ' Mo).');
   if (c.envoye && c.lienEnvoi) note('Déjà envoyé au bureau le ' + dateFR(c.dateEnvoi || c.date) + '. Retouchez ENVOYER pour renvoyer (photos ajoutées, ou lien expiré).', true);
 }
 $('btnFin').onclick = ouvrirEnvoi;
+$('btnReessayer').onclick = ouvrirEnvoi;
 $('btnEnvRetour').onclick = () => ouvrirChantier(chantierCourant);
 // Envoi en un clic (hébergeur public accepté par Kaliforage) : le zip est déposé en ligne (72 h),
 // puis le lien part par mail au bureau via ntfy. Le chantier reste dans le téléphone pour un re-envoi.
@@ -865,7 +977,9 @@ async function deposerZip(z){
 }
 let envoiEnCours = false, attendreReseau = false;
 async function envoyer(){
-  if (envoiEnCours || !zipPret || !zipPret.photos.length) return;
+  if (envoiEnCours) return;
+  if (!zipPret){ note('Le dossier est encore en préparation, patientez quelques secondes…'); return; }
+  if (!zipPret.photos.length) return;
   const c = chantierCourant, z = zipPret.zip, cle = CLE();
   if (!cle){ note('Appli pas encore reliée au bureau : ouvrez une fois le lien du chantier dans l\'agenda (ou le lien d\'installation).'); return; }
   if (!navigator.onLine){ attendreReseau = true; note('Pas de réseau. Le dossier partira tout seul dès que le réseau revient si l\'appli reste ouverte, sinon retouchez ENVOYER plus tard. Rien n\'est perdu.'); return; }
