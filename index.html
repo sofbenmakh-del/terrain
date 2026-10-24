@@ -94,6 +94,12 @@ p{margin:0;font-size:19px;line-height:1.35}
     <div class="note">Pour ouvrir un chantier, touchez le lien « Appli terrain » dans l'événement de l'agenda. Sinon, tapez le nom du dossier ci-dessous.</div>
     <input type="text" id="nomChantier" placeholder="156 LES ORBES" autocomplete="off" autocapitalize="characters">
     <button id="btnNouveau">OUVRIR CE CHANTIER</button>
+    <div class="note ok" style="display:flex;flex-direction:column;gap:8px">
+      <b>Accusé d'envoi</b>
+      <span style="font-size:16px">Votre adresse mail : à chaque envoi, vous recevez une copie du mail envoyé au bureau.</span>
+      <input type="email" id="mailForeur" placeholder="votre.adresse@gmail.com" autocomplete="email" inputmode="email" style="font:inherit;font-size:20px;padding:12px;border:3px solid var(--vert);border-radius:12px;width:100%">
+      <span id="mailEtat" style="font-size:15px"></span>
+    </div>
     <p id="version" style="text-align:center;font-size:14px;opacity:.6"></p>
   </main>
 </section>
@@ -211,7 +217,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.9';
+const VERSION = '1.10';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -285,6 +291,17 @@ function choisir(titre, boutons){
 }
 
 /* ---------- Accueil ---------- */
+const mailValide = m => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m || '');
+const MAIL_FOREUR = () => { try { return localStorage.getItem('mailForeur') || ''; } catch (e) { return ''; } };
+function majMailEtat(){
+  const m = MAIL_FOREUR();
+  $('mailEtat').textContent = mailValide(m) ? '✔ Copie envoyée à ' + m : 'Aucune adresse : pas de copie.';
+}
+$('mailForeur').onchange = () => {
+  const m = $('mailForeur').value.trim();
+  try { if (!m) localStorage.removeItem('mailForeur'); else if (mailValide(m)) localStorage.setItem('mailForeur', m); } catch (e) {}
+  if (m && !mailValide(m)) $('mailEtat').textContent = 'Adresse incorrecte, vérifiez-la.'; else majMailEtat();
+};
 async function afficherAccueil(){
   chantierCourant = null;
   const liste = (await tousChantiers()).sort((a, b) => b.date.localeCompare(a.date));
@@ -298,6 +315,7 @@ async function afficherAccueil(){
     b.onclick = () => ouvrirChantier(c);
     zone.appendChild(b);
   }
+  $('mailForeur').value = MAIL_FOREUR(); majMailEtat();
   $('version').textContent = 'Version ' + VERSION + (CLE() ? ' · reliée au bureau' : ' · PAS RELIÉE AU BUREAU');
   montrer('accueil');
 }
@@ -988,10 +1006,11 @@ async function envoyer(){
     const lien = await deposerZip(z);
     const titre = 'Chantier ' + c.nom + ' du ' + dateFR(c.date);
     const details = zipPret.photos.length + ' photos - ' + (z.size / 1048576).toFixed(1) + ' Mo';
+    const copie = MAIL_FOREUR();
     const mail = () => fetch('https://formsubmit.co/ajax/' + DESTINATAIRE, {method: 'POST',
       headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-      body: JSON.stringify({_subject: titre, _template: 'box', _captcha: 'false',
-        Chantier: c.nom, Date: dateFR(c.date), Contenu: details, 'Telecharger le zip (72 h)': lien})});
+      body: JSON.stringify({_subject: titre, _template: 'box', _captcha: 'false', ...(mailValide(copie) ? {_cc: copie} : {}),
+        Chantier: c.nom, Date: dateFR(c.date), Contenu: details, 'Envoye le': new Date().toLocaleString('fr-FR'), 'Telecharger le zip (72 h)': lien})});
     let r = await mail();
     if (r.status >= 500){ await new Promise(ok => setTimeout(ok, 3000)); r = await mail(); }
     const rep = await r.json().catch(() => ({}));
@@ -999,7 +1018,8 @@ async function envoyer(){
     // copie de secours sur le canal de notification (sans incidence si elle échoue)
     fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify({topic: cle, title: titre, message: details + '\n' + lien, click: lien, tags: ['package']})}).catch(() => {});
     c.envoye = true; c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString(); await sauverChantier(c); attendreReseau = false;
-    note('✔ ENVOYÉ au bureau. Vous pouvez fermer l\'appli.', true); vibrer();
+    note('✔ ENVOYÉ au bureau le ' + new Date().toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) + '.' + (mailValide(copie) ? ' Une copie (accusé d\'envoi) part sur ' + copie + '.' : ' Ajoutez votre adresse mail sur l\'accueil pour recevoir un accusé d\'envoi.') + ' Vous pouvez fermer l\'appli.', true);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
   } catch (e) {
     attendreReseau = true;
     note('Envoi pas encore fait (' + e.message + '). Retouchez ENVOYER quand il y a du réseau. Rien n\'est perdu.');
