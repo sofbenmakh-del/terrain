@@ -2,1053 +2,880 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#0b4f5c">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<title>Terrain Kaliforage</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Dictionnaire gratuit français ↔ darija algérienne : conjugaisons, nombres, alphabet et jeu de mémorisation.">
+<meta name="theme-color" content="#0f6e64">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Dictionnaire darija</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-:root{--fond:#f4f6f5;--encre:#0d1b1e;--bleu:#0b4f5c;--vert:#1f8a4c;--orange:#d9730d;--rouge:#b3261e;--gris:#c9d2d0}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--fond);color:var(--encre);font-family:Roboto,"Segoe UI",system-ui,sans-serif;overscroll-behavior:none;user-select:none}
-.ecran{display:none;flex-direction:column;min-height:100%}
-.ecran.actif{display:flex}
-header{background:var(--bleu);color:#fff;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top))}
-header .petit{font-size:15px;opacity:.85;letter-spacing:.04em;text-transform:uppercase}
-header .titre{font-size:26px;font-weight:800;line-height:1.15;margin-top:2px;word-break:break-word}
-main{flex:1;padding:12px;display:flex;flex-direction:column;gap:12px}
-button{font:inherit;border:0;border-radius:16px;color:#fff;background:var(--bleu);font-weight:800;font-size:24px;min-height:96px;padding:12px;width:100%;touch-action:manipulation}
-button:active{filter:brightness(.8)}
-.grille{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.tuile{min-height:128px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;line-height:1.1}
-.tuile .nb{font-size:17px;font-weight:600;opacity:.9}
-.tuile.fait{background:var(--vert)}
-.tuile.ajout{background:#fff;color:var(--bleu);border:4px dashed var(--bleu)}
-.large{grid-column:1/-1}
-.envoyer{background:var(--orange);min-height:110px;font-size:28px}
-.secondaire{background:#fff;color:var(--bleu);border:3px solid var(--bleu)}
-.danger{background:#fff;color:var(--rouge);border:3px solid var(--rouge);font-size:20px;min-height:80px}
-.discret{background:transparent;color:var(--bleu);font-size:18px;min-height:60px;text-decoration:underline}
-input[type=text]{font:inherit;font-size:24px;font-weight:700;padding:18px;border:3px solid var(--bleu);border-radius:16px;width:100%;user-select:text}
-#nomChantier{text-transform:uppercase}
-p{margin:0;font-size:19px;line-height:1.35}
-.note{background:#fff;border-left:8px solid var(--orange);border-radius:10px;padding:14px;font-size:19px;line-height:1.35}
-.note.ok{border-left-color:var(--vert)}
-.note b{font-weight:800}
-.ligne{display:flex;justify-content:space-between;align-items:center;font-size:20px;padding:10px 4px;border-bottom:2px solid var(--gris)}
-.ligne b{font-size:22px}
-.manque{color:var(--rouge);font-weight:800}
-/* caméra */
-#camera{background:#000;color:#fff;height:100%;position:fixed;inset:0}
-#video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-#camHaut{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px;padding-top:calc(12px + env(safe-area-inset-top));background:linear-gradient(#000c,#0000);z-index:2}
-#camHaut .cat{font-size:30px;font-weight:900}
-#btnObjectif{width:auto;min-height:52px;height:52px;font-size:19px;padding:0 14px;background:#fffd;color:#000;border-radius:26px;display:none}
-#profBar{position:absolute;left:0;right:0;top:calc(66px + env(safe-area-inset-top));z-index:2;display:none;gap:8px;padding:0 10px;align-items:center}
-#profBar button{min-height:64px;height:64px;font-size:30px;padding:0;border-radius:14px}
-#profBar #btnProfMoins,#profBar #btnProfPlus{width:60px;flex:none;background:#fff;color:var(--bleu);font-size:34px}
-#profBar #profVal{flex:1;background:#fffc;color:#000;font-size:22px;white-space:nowrap;min-width:0}
-#profBar #btnEtiq{width:92px;flex:none;font-size:13px;background:var(--vert);line-height:1.15;padding:0 4px}
-#profBar #btnEtiq.off{background:#555}
-#declencheur{position:absolute;left:0;right:0;bottom:120px;top:45%;background:transparent;border-radius:0;z-index:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18px}
-#declencheur span{width:120px;height:120px;border-radius:50%;border:8px solid #fff;background:#ffffff55;display:block}
-#camBas{position:absolute;left:0;right:0;bottom:0;height:120px;display:flex;gap:10px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#000;z-index:2}
-#camBas button{min-height:0;height:100%;font-size:21px}
-#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3;transition:opacity .25s}
-#flash.on{opacity:.85;transition:none}
-#vignette{position:absolute;right:12px;top:190px;width:84px;height:84px;object-fit:cover;border:3px solid #fff;border-radius:10px;z-index:2;display:none}
-/* galerie */
-.vignettes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.vg{position:relative}
-.vg span{position:absolute;left:6px;top:6px;background:#000b;color:#fff;font-size:13px;font-weight:700;padding:2px 7px;border-radius:6px}
-.vignettes img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:3px solid var(--gris);display:block}
-#grande{width:100%;max-height:60vh;object-fit:contain;background:#000;border-radius:12px}
-/* plan */
-#zonePlan{overflow:auto;background:#222;border-radius:12px;max-height:58vh}
-#canvasPlan{touch-action:none}
-#planAide{min-height:6.2em;font-size:16px;line-height:1.3}
-#canvasPlan{display:block}
-.puces{display:flex;flex-wrap:wrap;gap:10px}
-.puce{width:auto;flex:1 0 28%;min-height:72px;font-size:22px;background:#fff;color:var(--bleu);border:3px solid var(--bleu)}
-.puce.place{background:var(--vert);color:#fff;border-color:var(--vert)}
-.puce.deplace{background:var(--orange);color:#fff;border-color:var(--orange)}
-.puce.nonfait{background:var(--rouge);color:#fff;border-color:var(--rouge)}
-.puce.choisi{outline:6px solid #000;outline-offset:2px}
-.duo{display:flex;gap:10px}
-.duo button{flex:1}
-/* fenêtre */
-#fenetre{position:fixed;inset:0;background:#000a;z-index:10;display:none;align-items:flex-end}
-#fenetre.ouverte{display:flex}
-#fenetre .boite{background:var(--fond);width:100%;border-radius:20px 20px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;max-height:92vh;overflow:auto}
-#fenetre h2{margin:0 0 4px;font-size:24px}
-#fenetre button{min-height:72px;font-size:21px}
+/* Layout : en-tête collant (titre + recherche + filtres), liste de fiches, tableaux de conjugaison défilants */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --fg:#14231f; --muted:#5b6d68; --line:#d6e1de;
+  --accent:#0f6e64; --accent-soft:#dcefeb; --west:#a0522d; --west-soft:#f6e7dd; --doubt:#9a6b00;
+  --display:"Bricolage Grotesque",system-ui,sans-serif; --body:"Source Sans 3",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1715; --surface:#16211e; --fg:#e5eeeb; --muted:#93a6a0; --line:#2a3a36;
+  --accent:#4cc2b2; --accent-soft:#163a35; --west:#e0936a; --west-soft:#3a2418; --doubt:#e2b54a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1715; --surface:#16211e; --fg:#e5eeeb; --muted:#93a6a0; --line:#2a3a36;
+  --accent:#4cc2b2; --accent-soft:#163a35; --west:#e0936a; --west-soft:#3a2418; --doubt:#e2b54a; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-block:20px 12px;border-bottom:1px solid var(--line);display:grid;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:1.9rem;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+.sub b{color:var(--west);font-weight:600}
+#q{width:100%;box-sizing:border-box;font:inherit;font-size:1.05rem;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+#q:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:.85rem;padding:4px 12px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.chip:focus-visible,.entry summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.count{color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums}
+#list{display:grid;gap:8px;margin-top:16px}
+.entry{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.entry summary{list-style:none;cursor:pointer;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
+.entry summary::-webkit-details-marker{display:none}
+.fr{font-weight:600;min-width:0}
+.type{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.dz{grid-column:1/-1;font-family:var(--mono);font-size:.95rem;color:var(--accent);min-width:0;overflow-wrap:anywhere}
+.body{padding:0 14px 14px;display:grid;gap:10px;min-width:0}
+.forms{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.95rem}
+.forms dt{color:var(--muted)}
+.forms dd{margin:0;font-family:var(--mono);min-width:0;overflow-wrap:anywhere}
+.tag{display:inline-block;font-family:var(--body);font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:4px;margin-right:6px;vertical-align:1px}
+.tag.w{background:var(--west-soft);color:var(--west)}
+.tag.a{background:var(--accent-soft);color:var(--accent)}
+.note{font-size:.9rem;color:var(--muted);margin:0}
+.doubt{color:var(--doubt);font-weight:600}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:520px}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+thead th{font-weight:600;font-size:.78rem;letter-spacing:.04em;text-transform:uppercase}
+th.w{color:var(--west);background:var(--west-soft)} th.a{color:var(--accent);background:var(--accent-soft)}
+td{font-family:var(--mono)} td:first-child{font-family:var(--body);color:var(--muted)}
+td.sep{border-left:2px solid var(--line)}
+.conv{border-color:var(--accent)}
+.conv .body{gap:4px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{font:inherit;font-weight:600;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:6px 10px;cursor:pointer;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctrl{display:grid;gap:12px}
+#game{margin-top:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:14px;min-width:0}
+.panel h2{font-family:var(--display);font-weight:800;font-size:1.3rem;margin:0}
+.panel h3{font-size:.95rem;margin:0 0 6px}
+.panel ul{margin:0;padding-left:18px;display:grid;gap:2px}
+.g-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.fld{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+select,#g-ans{font:inherit;color:var(--fg);background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px}
+#g-ans{font-family:var(--mono);font-size:1.1rem;padding:12px}
+select:focus,#g-ans:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fs{border:none;padding:0;margin:0}.fs legend{font-size:.85rem;color:var(--muted);padding:0;margin-bottom:6px}
+.g-cats{display:flex;flex-wrap:wrap;gap:6px 14px}
+.chk{display:flex;gap:6px;align-items:center;font-size:.95rem;cursor:pointer}
+.chk input{accent-color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.spread{justify-content:space-between}
+.right{margin-left:auto}
+.btn{font:inherit;font-weight:600;background:var(--accent);color:var(--bg);border:1.5px solid var(--accent);border-radius:8px;padding:8px 18px;cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--accent)}
+.prompt{font-family:var(--display);font-weight:600;font-size:1.6rem;margin:0;overflow-wrap:anywhere;text-wrap:balance}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+#g-bar{height:100%;width:0;background:var(--accent);transition:width .25s}
+.g-fb{padding:10px 12px;border-radius:8px;font-size:.98rem}
+.g-fb.ok{background:var(--accent-soft);color:var(--fg)}.g-fb.ok b{color:var(--accent)}
+.g-fb.ko{background:var(--west-soft);color:var(--fg)}.g-fb.ko b{color:var(--west)}
+.mono{font-family:var(--mono)}
+.big{font-family:var(--display);font-weight:800;font-size:3rem;margin:0;color:var(--accent);font-variant-numeric:tabular-nums}
+.report{justify-self:start;font-size:.85rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.report:hover,.report:focus-visible{color:var(--accent)}
+#mag{margin-top:16px}
+.mag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.wip{display:inline-block;justify-self:start;margin:0;font-size:.8rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--west);background:var(--west-soft);padding:3px 10px;border-radius:99px}
+.foot{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-size:.9rem;color:var(--muted)}
+.foot p{margin:0;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.mail{font-family:var(--mono);color:var(--fg);user-select:all}
+.btn.small{padding:4px 12px;font-size:.82rem}
+.sec{margin:6px 0 -2px;font-weight:600;font-size:.9rem}
+.sec small{font-weight:400;color:var(--muted)}
+table.narrow{min-width:0}
+.empty{color:var(--muted);text-align:center;padding:32px 0}
+#splash{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;text-align:center;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
+#splash.out{opacity:0;pointer-events:none}
+.dua{font-family:var(--display);font-weight:600;font-size:clamp(1.3rem,5vw,2rem);line-height:1.3;max-width:28ch;margin:0;text-wrap:balance}
+.dua2{font-size:1.1rem;color:var(--muted);margin:0}
+.skip{margin-top:18px;font:inherit;font-size:.9rem;background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:6px 18px;cursor:pointer}
+@media (max-width:600px){
+  header{padding-block:12px 10px;gap:10px}
+  h1{font-size:1.5rem}
+  .sub{font-size:.8rem}
+  .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .chip{flex:none}
+  .entry summary{padding:10px 12px}
+  .panel{padding:14px}
+  .prompt{font-size:1.35rem}
+  .btn{padding:10px 16px}
+}
+@media (prefers-reduced-motion:no-preference){#splash{transition:opacity .9s ease}}
+@media (prefers-reduced-motion:no-preference){.entry{transition:border-color .15s}.entry:hover{border-color:var(--accent)}}
 </style>
 </head>
 <body>
 
-<!-- ACCUEIL -->
-<section class="ecran" id="accueil">
-  <header><div class="petit">Kaliforage</div><div class="titre">Chantiers</div></header>
-  <main>
-    <div id="listeChantiers" style="display:flex;flex-direction:column;gap:12px"></div>
-    <div class="note">Pour ouvrir un chantier, touchez le lien « Appli terrain » dans l'événement de l'agenda. Sinon, tapez le nom du dossier ci-dessous.</div>
-    <input type="text" id="nomChantier" placeholder="156 LES ORBES" autocomplete="off" autocapitalize="characters">
-    <button id="btnNouveau">OUVRIR CE CHANTIER</button>
-    <div class="note ok" style="display:flex;flex-direction:column;gap:8px">
-      <b>Accusé d'envoi</b>
-      <span style="font-size:16px">Votre adresse mail : à chaque envoi, vous recevez une copie du mail envoyé au bureau.</span>
-      <input type="email" id="mailForeur" placeholder="votre.adresse@gmail.com" autocomplete="email" inputmode="email" style="font:inherit;font-size:20px;padding:12px;border:3px solid var(--vert);border-radius:12px;width:100%">
-      <span id="mailEtat" style="font-size:15px"></span>
-    </div>
-    <p id="version" style="text-align:center;font-size:14px;opacity:.6"></p>
-  </main>
-</section>
-
-<!-- CHANTIER -->
-<section class="ecran" id="chantier">
-  <header><div class="petit" id="chDate"></div><div class="titre" id="chNom"></div></header>
-  <main>
-    <div class="grille" id="grille"></div>
-    <button class="envoyer" id="btnFin">CHANTIER TERMINÉ</button>
-    <button class="discret" id="btnRetourAccueil">Autres chantiers</button>
-  </main>
-</section>
-
-<!-- CAMÉRA -->
-<section class="ecran" id="camera">
-  <video id="video" playsinline autoplay muted></video>
-  <div id="flash"></div>
-  <img id="vignette" alt="">
-  <div id="camHaut"><span class="cat" id="camCat"></span><button id="btnObjectif">0,5x</button></div>
-  <div id="profBar">
-    <button id="btnEtiq">ÉTIQUETTE<br>OUI</button>
-    <button id="btnProfMoins">−</button>
-    <button id="profVal">PROF. ?</button>
-    <button id="btnProfPlus">+</button>
+<div id="splash" role="dialog" aria-label="Dédicace">
+  <p class="dua">Faites des dou3a pour l'auteur, sa mère, son père, son frère et sa famille.</p>
+  <p class="dua2">Qu'Allah vous récompense.</p>
+  <button type="button" id="splash-skip" class="skip">Entrer</button>
+</div>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Dictionnaire <span>darija</span></h1>
+    <p class="sub">ق écrit 9, souvent prononcé g dans l'Ouest. Pour les verbes : <b>Ouest</b> (Sidi Bel Abbès, Tlemcen) puis Alger / Est.</p>
   </div>
-  <button id="declencheur" aria-label="Prendre la photo"><span></span></button>
-  <div id="camBas">
-    <button class="secondaire" id="btnCamPhotos" style="flex:1">PHOTOS (0)</button>
-    <button id="btnCamRetour" style="flex:1;background:var(--vert)">TERMINÉ</button>
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab" id="tab-dico" role="tab" aria-selected="true">Dictionnaire</button>
+    <button type="button" class="tab" id="tab-game" role="tab" aria-selected="false">Jeu de mémorisation</button>
+    <button type="button" class="tab" id="tab-mag" role="tab" aria-selected="false">Tunisie / Maroc</button>
+  </div>
+  <div id="dico-ctrl" class="ctrl">
+  <input id="q" type="search" placeholder="Chercher un mot (tuer, y9etlou, khatrat) ou taper un nombre (1250)" autocomplete="off" aria-label="Recherche">
+  <div class="chips" id="chips"></div>
+  <div class="count" id="count"></div>
+  </div>
+</header>
+<div id="dico"><div id="list"></div></div>
+<section id="mag" hidden>
+  <div class="mag-grid">
+    <div class="panel"><p class="type">Darija tunisienne</p><h2>Tunisie</h2><p class="wip">En chantier</p><p class="note">Les mots tunisiens seront ajoutés ici prochainement.</p></div>
+    <div class="panel"><p class="type">Darija marocaine</p><h2>Maroc</h2><p class="wip">En chantier</p><p class="note">Les mots marocains seront ajoutés ici prochainement.</p></div>
   </div>
 </section>
-
-<!-- PHOTOS D'UNE CATÉGORIE -->
-<section class="ecran" id="galerie">
-  <header><div class="petit" id="galSous">Photos · touchez une photo pour la gérer</div><div class="titre" id="galTitre"></div></header>
-  <main>
-    <button class="secondaire" id="btnGalAjouter">+ AJOUTER DES PHOTOS DU TÉLÉPHONE</button>
-    <div class="vignettes" id="galGrille"></div>
-    <p id="galVide" style="display:none">Aucune photo.</p>
-    <button class="danger" id="btnAnnulerSondage" style="display:none">SUPPRIMER CE SONDAGE (aucune photo)</button>
-    <button id="btnGalRetour" style="background:var(--vert)">RETOUR</button>
-  </main>
-</section>
-
-<!-- UNE PHOTO -->
-<section class="ecran" id="visionneuse">
-  <header><div class="petit">Photo</div><div class="titre" id="visTitre"></div></header>
-  <main>
-    <img id="grande" alt="">
-    <button class="secondaire" id="btnChangerCat">CHANGER DE CATÉGORIE</button>
-    <button class="danger" id="btnSupprPhoto">SUPPRIMER CETTE PHOTO</button>
-    <button id="btnVisRetour" style="background:var(--vert)">GARDER ET REVENIR</button>
-  </main>
-</section>
-
-<!-- PANORAMA -->
-<section class="ecran" id="panorama">
-  <header><div class="petit">Panorama</div><div class="titre" id="panoTitre">PANORAMA</div></header>
-  <main>
-    <button class="envoyer" id="btnPanoCamera">1. OUVRIR L'APPAREIL PHOTO DU TÉLÉPHONE</button>
-    <div class="note" id="panoAide">L'appareil photo habituel du téléphone s'ouvre. Choisissez le mode <b>Panorama</b> (souvent dans « Plus »), prenez la vue, puis revenez ici.</div>
-    <button id="btnPanoAjouter">2. AJOUTER LE PANORAMA PRIS</button>
-    <button class="secondaire" id="btnPanoVoir">VOIR / SUPPRIMER (0)</button>
-    <button id="btnPanoRetour" style="background:var(--vert)">RETOUR</button>
-  </main>
-</section>
-
-<!-- PLAN D'IMPLANTATION -->
-<section class="ecran" id="plan">
-  <header><div class="petit">Plan d'implantation</div><div class="titre" id="planTitre"></div></header>
-  <main>
-    <div id="planVide" style="display:flex;flex-direction:column;gap:12px">
-      <div class="note">Chargez le plan : la proposition technique (PDF) jointe à l'événement de l'agenda, ou une photo du plan.</div>
-      <button class="secondaire" id="btnOuvrirPT" style="display:none">1. TÉLÉCHARGER LA PROPOSITION TECHNIQUE</button>
-      <button id="btnImporterPlan">CHARGER LE PLAN (PDF OU IMAGE)</button>
+<section id="game" hidden>
+  <div id="g-setup" class="panel">
+    <h2>Jeu de mémorisation</h2>
+    <p class="note">Traduis les mots du dictionnaire. Les voyelles sont souples (hadok = hadouk = hedouk), comme les écritures 5 / kh, 4 / gh, 9 / q.</p>
+    <div class="g-grid">
+      <label class="fld">Mots<select id="g-src"><option value="tout">Vocabulaire de base</option><option value="c1">Base · série 1</option><option value="c10">Base · série 2 (famille)</option><option value="dico">Tout le dictionnaire</option></select></label>
+      <label class="fld">Sens<select id="g-dir"><option value="mix">Les deux, au hasard</option><option value="fd">Français → darija</option><option value="df">Darija → français</option></select></label>
+      <label class="fld">Questions<select id="g-n"><option>15</option><option>30</option><option>45</option><option>60</option><option>90</option><option>120</option><option>180</option></select></label>
     </div>
-    <div id="planPlein" style="display:none;flex-direction:column;gap:12px">
-      <div class="note" id="planAide"></div>
-      <div id="zonePlan"><canvas id="canvasPlan"></canvas></div>
-      <div class="duo"><button class="secondaire" id="btnZoomMoins">ZOOM −</button><button class="secondaire" id="btnZoomPlus">ZOOM +</button></div>
-      <div class="puces" id="puces"></div>
-      <div class="duo"><button id="btnPlanTR">+ TARIÈRE</button><button id="btnPlanP">+ PÉNÉTRO</button></div>
-      <button class="secondaire" id="btnDeplace" style="display:none">SONDAGE DÉPLACÉ</button>
-      <button class="secondaire" id="btnSupp">SONDAGE SUPPLÉMENTAIRE (hors plan)</button>
-      <button class="danger" id="btnNonRealise" style="display:none">SONDAGE NON RÉALISÉ</button>
-      <button class="danger" id="btnRetirer" style="display:none">RETIRER DU PLAN</button>
-      <button class="discret" id="btnChangerPlan">Changer de plan</button>
+    <fieldset class="fs"><legend>Catégories</legend><div id="g-cats" class="g-cats"></div></fieldset>
+    <div class="row"><button type="button" id="g-start" class="btn">Commencer</button><span class="note" id="g-avail"></span></div>
+    <p class="note" id="g-best"></p>
+  </div>
+  <div id="g-play" class="panel" hidden>
+    <div class="bar"><div id="g-bar"></div></div>
+    <div class="row spread"><span class="type" id="g-cat"></span><span class="count" id="g-prog"></span></div>
+    <p id="g-prompt" class="prompt"></p>
+    <input id="g-ans" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Ta réponse">
+    <div id="g-fb" class="g-fb" hidden></div>
+    <div class="row">
+      <button type="button" id="g-check" class="btn">Vérifier</button>
+      <button type="button" id="g-next" class="btn" hidden>Suivant</button>
+      <button type="button" id="g-over" class="btn ghost" hidden>J'avais juste</button>
+      <span class="count" id="g-score"></span>
+      <button type="button" id="g-quit" class="btn ghost right">Arrêter</button>
     </div>
-    <button id="btnPlanRetour" style="background:var(--vert)">RETOUR</button>
-  </main>
+  </div>
+  <div id="g-end" class="panel" hidden>
+    <p class="type">Score</p>
+    <p id="g-res" class="big"></p>
+    <p id="g-resd"></p>
+    <div id="g-miss"></div>
+    <div class="row"><button type="button" id="g-again" class="btn">Rejouer</button><button type="button" id="g-cfg" class="btn ghost">Changer les réglages</button></div>
+  </div>
 </section>
+<footer class="foot">
+  <p>Une erreur, un mot à ajouter ? Écris à <span class="mail" id="mail">sofienebm@live.fr</span> <button type="button" class="btn ghost small" id="copy-mail">Copier l'adresse</button></p>
+</footer>
+</div>
 
-<!-- ENVOI -->
-<section class="ecran" id="envoi">
-  <header><div class="petit">Fin de chantier</div><div class="titre" id="envNom"></div></header>
-  <main>
-    <div id="recap"></div>
-    <div class="note" id="envNote"></div>
-    <button class="envoyer" id="btnEnvoyer">ENVOYER</button>
-    <button class="secondaire" id="btnReessayer" style="display:none">RÉESSAYER LA PRÉPARATION</button>
-    <button class="secondaire" id="btnEnvRetour">RETOUR AU CHANTIER</button>
-    <button class="danger" id="btnSupprimer">EFFACER CE CHANTIER DU TÉLÉPHONE</button>
-  </main>
-</section>
-
-<!-- FENÊTRE DE CHOIX -->
-<div id="fenetre"><div class="boite" id="boite"></div></div>
-
-<input type="file" id="fichierPhoto" accept="image/*" capture="environment" hidden>
-<input type="file" id="fichierGalerie" accept="image/*" multiple hidden>
-<input type="file" id="fichierAjout" accept="image/*" multiple hidden>
-<input type="file" id="fichierPano" accept="image/*" capture="environment" hidden>
-<input type="file" id="fichierPlan" accept="application/pdf,image/*" hidden>
-
+<script src="verbes.js"></script>
 <script>
-'use strict';
-const VERSION = '1.10';
-const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
-const TAILLE_MAX = 2048, QUALITE = 0.82;
-const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
-const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/';
-const FIXES = [
-  {code:'SITE',  nom:'VUE DU SITE',    dossier:'Site'},
-  {code:'PANO',  nom:'PANORAMA',       dossier:'Panoramas'},
-  {code:'FICHE', nom:'FICHE CHANTIER', dossier:'Fiche chantier'}
+const MAIL="sofienebm@live.fr";
+const P=["ana","nta","nti","howa","hiya","7na","ntouma","homa"];
+const PFR=["je","tu (m)","tu (f)","il","elle","nous","vous","ils / elles"];
+
+/* ---------- DONNÉES : ajouter les nouveaux mots ici ---------- */
+const D=[
+/* VERBES : w = Ouest, a = Alger/Est (null = identique) ; pr = présent, pa = passé (ordre : ana, nta, nti, howa, hiya, 7na, ntouma, homa) */
+{t:"verbe",fr:"tuer",dz:"9tel",
+ w:{pr:["ne9tel","te9tel","t9etli","ye9tel","te9tel","n9etlou","t9etlou","y9etlou"],pa:["9telt","9telt","9telti","9tel","9etlet","9telna","9teltou","9etlou"]},
+ a:{pr:["no9tol","to9tol","t9otli","yo9tol","to9tol","n9otlou","t9otlou","y9otlou"],pa:["9telt","9telt","9telti","9tel","9otlat","9telna","9teltou","9otlou"]},
+ n:"Avec un pronom commençant par une voyelle, la voyelle passe avant le t : t9etlah (tu le tues). Devant -ha / -hom elle reste : te9telhom (tu les tues)."},
+{t:"verbe",fr:"devenir ; revenir, rentrer",dz:"wella",
+ w:{pr:["nwelli","twelli","twelli","ywelli","twelli","nwelliw","twelliw","ywelliw"],pa:["wellit","wellit","welliti","wella","wellat","wellina","wellitou","wellaw"]},a:null,
+ n:"ywelliw a9wa = ils deviennent plus forts. wellit l'dar = je suis rentré à la maison."},
+{t:"verbe",fr:"essayer, tester",dz:"jerreb",
+ w:{pr:["njerreb","tjerreb","tjerrbi","yjerreb","tjerreb","njerrbou","tjerrbou","yjerrbou"],pa:["jerrebt","jerrebt","jerrebti","jerreb","jerrbet","jerrebna","jerrebtou","jerrbou"]},a:null,
+ n:"njerrbah = je le teste (h final = pronom « le », pas 7)."},
+{t:"verbe",fr:"tenter, faire un effort",dz:"7awel",
+ w:{pr:["n7awel","t7awel","t7awli","y7awel","t7awel","n7awlou","t7awlou","y7awlou"],pa:["7awelt","7awelt","7awelti","7awel","7awlet","7awelna","7aweltou","7awlou"]},a:null,
+ n:"n7awel nefhem = j'essaie de comprendre."},
+{t:"verbe",fr:"frapper",dz:"dreb",
+ w:{pr:["nedreb","tedreb","tedarbi","yedreb","tedreb","nedarbou","tedarbou","yedarbou"],pa:["drebt","drebt","drebti","dreb","darbet","drebna","drebtou","darbou"]},
+ a:{pr:["nodrob","todrob","todorbi","yodrob","todrob","nodorbou","todorbou","yodorbou"],pa:["drobt","drobt","drobti","drob","dorbat","drobna","drobtou","dorbou"]},
+ n:"ydarbek = il te frappe."},
+{t:"verbe",fr:"aimer, vouloir",dz:"7ebb",
+ w:{pr:["n7ebb","t7ebb","t7ebbi","y7ebb","t7ebb","n7ebbou","t7ebbou","y7ebbou"],pa:["7ebbit","7ebbit","7ebbiti","7ebb","7ebbet","7ebbina","7ebbitou","7ebbou"]},
+ a:{pr:["n7ab","t7ab","t7abi","y7ab","t7ab","n7abou","t7abou","y7abou"],pa:["7abit","7abit","7abiti","7ab","7abat","7abina","7abitou","7abou"]},
+ n:"ila t7ebb = si tu veux."},
+{t:"verbe",fr:"faire",dz:"dar",
+ w:{pr:["ndir","tdir","tdiri","ydir","tdir","ndirou","tdirou","ydirou"],pa:["dert","dert","derti","dar","daret","derna","dertou","darou"]},a:null},
+{t:"verbe",fr:"jouer",dz:"le3b",
+ w:{pr:["nel3eb","tel3eb","tel3bi","yel3eb","tel3eb","nel3bou","tel3bou","yel3bou"],pa:["l3ebt","l3ebt","l3ebti","l3eb","le3bet","l3ebna","l3ebtou","le3bou"]},
+ a:{pr:["nol3ob","tol3ob","tol3bi","yol3ob","tol3ob","nol3bou","tol3bou","yol3bou"],pa:["l3ebt","l3ebt","l3ebti","l3eb","l3bat","l3ebna","l3ebtou","l3bou"]}},
+{t:"verbe",fr:"augmenter, ajouter, progresser",dz:"zad",
+ w:{pr:["nzid","tzid","tzidi","yzid","tzid","nzidou","tzidou","yzidou"],pa:["zedt","zedt","zedti","zad","zadet","zedna","zedtou","zadou"]},a:null,
+ n:"ki tzid fel mustawa = quand tu montes de niveau. yzidou fel 9owwa = ils gagnent en force."},
+{t:"verbe",fr:"monter",dz:"tla3",
+ w:{pr:["ntla3","ttla3","ttal3i","ytla3","ttla3","ntal3ou","ttal3ou","ytal3ou"],pa:["tla3t","tla3t","tla3ti","tla3","tal3et","tla3na","tla3tou","tal3ou"]},a:null},
+{t:"verbe",fr:"dire",dz:"9al",
+ w:{pr:["n9oul","t9oul","t9ouli","y9oul","t9oul","n9oulou","t9oulou","y9oulou"],pa:["9olt","9olt","9olti","9al","9alet","9olna","9oltou","9alou"]},a:null},
+{t:"verbe",fr:"jeter, lancer",dz:"la7",
+ w:{pr:["nlo7","tlo7","tlo7i","ylo7","tlo7","nlo7ou","tlo7ou","ylo7ou"],pa:["l7it","l7it","l7iti","la7","la7et","l7ina","l7itou","la7ou"]},a:null,
+ n:"nlo7 rou7i 3lihom = je me jette sur eux."},
+{t:"verbe",fr:"regarder, profiter du spectacle",dz:"tfarraj",
+ w:{pr:["netfarraj","tetfarraj","tetfarji","yetfarraj","tetfarraj","netfarjou","tetfarjou","yetfarjou"],pa:["tfarrajt","tfarrajt","tfarrajti","tfarraj","tfarjet","tfarrajna","tfarrajtou","tfarjou"]},a:null},
+{t:"verbe",fr:"voler (dans l'air), s'envoler",dz:"tar",
+ w:{pr:["ntir","ttir","ttiri","ytir","ttir","ntirou","ttirou","ytirou"],pa:["tert","tert","terti","tar","taret","terna","tertou","tarou"]},a:null,
+ n:"ytir 7atta l'sma = il s'envole jusqu'au ciel."},
+{t:"verbe",fr:"éteindre",dz:"tfa",
+ w:{pr:["ntfi","ttfi","ttfi","ytfi","ttfi","ntfiw","ttfiw","ytfiw"],pa:["tfit","tfit","tfiti","tfa","tfat","tfina","tfitou","tfaw"]},a:null,
+ n:"ytfilek ddou = il t'éteint la lumière (il te met KO d'un coup)."},
+{t:"verbe",fr:"sortir, apparaître",dz:"khrej",
+ w:{pr:["nekhrej","tekhrej","tkherji","yekhrej","tekhrej","nkherjou","tkherjou","ykherjou"],pa:["khrejt","khrejt","khrejti","khrej","kherjet","khrejna","khrejtou","kherjou"]},
+ a:{pr:["nokhroj","tokhroj","tkhorji","yokhroj","tokhroj","nkhorjou","tkhorjou","ykhorjou"],pa:["khrejt","khrejt","khrejti","khrej","khorjat","khrejna","khrejtou","khorjou"]}},
+{t:"verbe",fr:"comprendre",dz:"fhem",
+ w:{pr:["nefhem","tefhem","tfehmi","yefhem","tefhem","nfehmou","tfehmou","yfehmou"],pa:["fhemt","fhemt","fhemti","fhem","fehmet","fhemna","fhemtou","fehmou"]},
+ a:{pr:["nofhom","tofhom","tfohmi","yofhom","tofhom","nfohmou","tfohmou","yfohmou"],pa:["fhemt","fhemt","fhemti","fhem","fohmat","fhemna","fhemtou","fohmou"]}},
+{t:"verbe",fr:"venir",dz:"ja",
+ w:{pr:["nji","tji","tji","yji","tji","njiw","tjiw","yjiw"],pa:["jit","jit","jiti","ja","jat","jina","jitou","jaw"]},a:null,
+ n:"tji ghedwa ? = tu viens demain ?"},
+{t:"verbe",fr:"gagner",dz:"rbe7",
+ w:{pr:["nerbe7","terbe7","treb7i","yerbe7","terbe7","nreb7ou","treb7ou","yreb7ou"],pa:["rbe7t","rbe7t","rbe7ti","rbe7","reb7et","rbe7na","rbe7tou","reb7ou"]},a:null,
+ n:"Ne pas dire « rbe7 9owwa » (calque) : dire zad fel 9owwa."},
+{t:"verbe",fr:"passer, dépasser",dz:"fat",
+ w:{pr:["nfout","tfout","tfouti","yfout","tfout","nfoutou","tfoutou","yfoutou"],pa:["fet","fet","feti","fat","fatet","fetna","fettou","fatou"]},a:null},
+
+/* NOMS : s = singulier, p = pluriel */
+{t:"nom",fr:"arc",s:"9ous",p:"9wass",d:true},
+{t:"nom",fr:"flèche",s:"sahm",p:"s'ham",n:"Variante : nebla / nbal."},
+{t:"nom",fr:"bouclier",s:"dar9a",p:"dar9at",d:true,n:"On entend aussi dra3 (plutôt l'armure)."},
+{t:"nom",fr:"épée",s:"sif",p:"syouf"},
+{t:"nom",fr:"arme",s:"sla7",p:"asli7a",n:"Pluriel pris de l'arabe classique."},
+{t:"nom",fr:"personnage",s:"chakhsiya",p:"chakhsiyat"},
+{t:"nom",fr:"bête sauvage",s:"wa7ch",p:"w7ouch"},
+{t:"nom",fr:"créature",s:"kayna",p:"kaynat"},
+{t:"nom",fr:"niveau",s:"mustawa",p:"mustawayat",n:"Remplace « niveau ». ki tzid fel mustawa = quand tu montes de niveau."},
+{t:"nom",fr:"ennemi",s:"3dou",p:"3dyan"},
+{t:"nom",fr:"quête, mission",s:"mohimma",p:"mahamm",n:"Arabe classique (pas d'équivalent darija propre)."},
+{t:"nom",fr:"compétence",s:"mahara",p:"maharat",n:"Arabe classique."},
+{t:"nom",fr:"forgeage",s:"7dada",p:"—"},
+{t:"nom",fr:"force",s:"9owwa",p:"—"},
+{t:"nom",fr:"erreur",s:"ghalta",p:"ghaltat",n:"had lghalta = cette erreur (article l- obligatoire après had)."},
+{t:"nom",fr:"problème",s:"mochkla",p:"machakil",n:"Masculin aussi : mochkil (hada mochkil)."},
+{t:"nom",fr:"jeu",s:"lo3ba",p:"l3ab"},
+{t:"nom",fr:"fois",s:"khatra",p:"khatrat",n:"Synonyme : marra / marrat. khatra wa7da = une seule fois."},
+{t:"nom",fr:"ciel",s:"sma",p:"smawat"},
+{t:"nom",fr:"homme",s:"rajel",p:"rjal",n:"kima rajel s7i7 = comme un vrai homme."},
+{t:"nom",fr:"lumière",s:"dou",p:"adwa"},
+{t:"nom",fr:"gens",s:"nnas",p:"(collectif)"},
+{t:"nom",fr:"maison",s:"dar",p:"dyar"},
+{t:"nom",fr:"déjeuner",s:"ghda",p:"—"},
+
+/* ADJECTIFS : m, f, p */
+{t:"adjectif",fr:"difficile, dur",m:"s3ib",f:"s3iba",p:"s3ab",n:"s3ib bach te9telhom = ils sont durs à tuer."},
+{t:"adjectif",fr:"vrai, correct",m:"s7i7",f:"s7i7a",p:"s7a7"},
+{t:"adjectif",fr:"ancien, vieux (chose)",m:"9dim",f:"9dima",p:"9dam"},
+{t:"adjectif",fr:"fort",m:"9wi",f:"9wiya",p:"9wiyin",n:"Plus fort : a9wa."},
+{t:"adjectif",fr:"autre",m:"akhor",f:"akhra",p:"khrin",n:"wa7d akhor = un autre, wa7da khra = une autre, wa7din khrin / wa7dokhrin = d'autres, lokhrin = les autres."},
+
+/* MOTS OUTILS ET EXPRESSIONS : v = forme Ouest, a = forme Alger si différente */
+{t:"mot outil",fr:"parfois",v:"khatrat",n:"Aussi marrat, sa3at."},
+{t:"mot outil",fr:"selon, en fonction de",v:"3la 7sab",n:"Forme courte : 7sab. Seul = « ça dépend ». 3la 7sabek = pour toi, à cause de toi."},
+{t:"mot outil",fr:"maintenant",v:"drok",a:"dorka, dok"},
+{t:"mot outil",fr:"avant",v:"9bel"},
+{t:"mot outil",fr:"après",v:"ba3d",n:"ba3d lghda = après le déjeuner."},
+{t:"mot outil",fr:"certains, quelques",v:"chi",a:"ba3d",n:"Devant un nom, ba3d = certains (ba3d nnas = certaines personnes)."},
+{t:"mot outil",fr:"sinon",v:"wella"},
+{t:"mot outil",fr:"parce que",v:"khater",n:"Aussi 3la khater."},
+{t:"mot outil",fr:"beaucoup, trop",v:"bezzaf"},
+{t:"mot outil",fr:"tous, tout",v:"ga3"},
+{t:"mot outil",fr:"seulement, juste",v:"ghir"},
+{t:"mot outil",fr:"avec",v:"m3a"},
+{t:"mot outil",fr:"sans",v:"bla"},
+{t:"mot outil",fr:"pourquoi",v:"3lach"},
+{t:"mot outil",fr:"il y a",v:"kayen",n:"Féminin kayna, pluriel kaynin."},
+{t:"mot outil",fr:"oui",v:"iih"},
+{t:"mot outil",fr:"jusqu'à ; même",v:"7atta"},
+{t:"mot outil",fr:"si (condition)",v:"ila",a:"ida"},
+{t:"mot outil",fr:"quand (lorsque)",v:"ki"},
+{t:"mot outil",fr:"comme",v:"kima"},
+{t:"mot outil",fr:"exprès",v:"bel3ani"},
+{t:"expression",fr:"à mon avis, je pense",v:"fi bali"},
+{t:"expression",fr:"fais attention",v:"rod balek"},
+{t:"expression",fr:"ça vaut le coup",v:"yeswa"},
+{t:"expression",fr:"puissance de frappe",v:"9owwet ddarb"},
+{t:"expression",fr:"crochetage (ouvrir les serrures)",v:"fte7 le9fal"},
+{t:"expression",fr:"il te met KO d'un coup",v:"ytfilek ddou",n:"Mot à mot : il t'éteint la lumière."},
+{t:"expression",fr:"il s'envole jusqu'au ciel",v:"ytir 7atta l'sma"},
+{t:"expression",fr:"mdr (rire écrit)",v:"hhhh"},
+
+/* ARGENT ET COMMERCE */
+{t:"nom",fr:"billet (de banque)",s:"wer9a",p:"wra9"},
+{t:"nom",fr:"monnaie (petite monnaie)",s:"sarf",p:"—"},
+{t:"nom",fr:"pièce (de monnaie)",s:"9et3a",p:"9ta3",n:"Arabe classique : 9et3a nqdiya. « Piessa » est un emprunt au français."},
+{t:"nom",fr:"village",s:"dechra",p:"dchour",n:"Aussi douar / dwawer. « Fillaj » est un emprunt au français."},
+{t:"nom",fr:"ferme",s:"mazra3a",p:"mazari3",n:"Arabe classique. « Firma » est un emprunt au français."},
+{t:"nom",fr:"Algérie",s:"ldzayer",p:"—",n:"Arabe classique : al-jaza2ir. Algérien : dzayri, dzayriya, dzayriyin."},
+{t:"mot outil",fr:"combien",v:"ch7al",n:"ch7al hadi ? = c'est combien ?"},
+
+/* NOMBRES */
+{t:"nombre",fr:"0 zéro",v:"sifr"},
+{t:"nombre",fr:"1 un",v:"wa7ed",n:"Féminin : wa7da."},
+{t:"nombre",fr:"2 deux",v:"zouj",n:"Dans les nombres composés : tnin (tnin w3achrin = 22)."},
+{t:"nombre",fr:"3 trois",v:"tlata",n:"Devant un nom au pluriel : tlet (tlet alaf, tlet mya)."},
+{t:"nombre",fr:"4 quatre",v:"reb3a",n:"Forme courte : rbe3."},
+{t:"nombre",fr:"5 cinq",v:"khamsa",n:"Forme courte : khems."},
+{t:"nombre",fr:"6 six",v:"setta",n:"Forme courte : sett."},
+{t:"nombre",fr:"7 sept",v:"seb3a",n:"Forme courte : sbe3."},
+{t:"nombre",fr:"8 huit",v:"tmenya",n:"Forme courte : tmen."},
+{t:"nombre",fr:"9 neuf",v:"tes3a",n:"Forme courte : tsa3 / tes3."},
+{t:"nombre",fr:"10 dix",v:"3achra",n:"Forme courte : 3achr."},
+{t:"nombre",fr:"11 onze",v:"7dach"},
+{t:"nombre",fr:"12 douze",v:"tnach"},
+{t:"nombre",fr:"13 treize",v:"tlettach"},
+{t:"nombre",fr:"14 quatorze",v:"rba3tach"},
+{t:"nombre",fr:"15 quinze",v:"khamstach"},
+{t:"nombre",fr:"16 seize",v:"settach"},
+{t:"nombre",fr:"17 dix-sept",v:"sba3tach"},
+{t:"nombre",fr:"18 dix-huit",v:"tmentach"},
+{t:"nombre",fr:"19 dix-neuf",v:"tsa3tach"},
+{t:"nombre",fr:"20 vingt",v:"3achrin",n:"21 = wa7ed w3achrin : l'unité d'abord, puis w + la dizaine."},
+{t:"nombre",fr:"30 trente",v:"tlatin"},
+{t:"nombre",fr:"40 quarante",v:"reb3in"},
+{t:"nombre",fr:"50 cinquante",v:"khamsin"},
+{t:"nombre",fr:"60 soixante",v:"settin"},
+{t:"nombre",fr:"70 soixante-dix",v:"seb3in"},
+{t:"nombre",fr:"80 quatre-vingts",v:"tmanin"},
+{t:"nombre",fr:"90 quatre-vingt-dix",v:"tes3in"},
+{t:"nombre",fr:"100 cent",v:"mya",n:"Devant un nom : myat (myat alf = 100 000)."},
+{t:"nombre",fr:"200 deux cents",v:"mitin"},
+{t:"nombre",fr:"300 à 900 (centaines)",v:"tlet mya, rbe3 mya, khems mya…",n:"Forme courte du chiffre + mya."},
+{t:"nombre",fr:"1 000 mille",v:"alf",n:"2 000 = alfin. 3 000 à 10 000 : pluriel alaf (tlet alaf, 3achr alaf). À partir de 11 : singulier (7dach alf, 3achrin alf)."},
+{t:"nombre",fr:"1 000 000 million",v:"melyoun",n:"2 = zouj mlayen. 3 à 10 : mlayen. À partir de 11 : melyoun."},
+{t:"nombre",fr:"1 000 000 000 milliard",v:"milyar",n:"2 = zouj mlayer. 3 à 10 : mlayer. À partir de 11 : milyar."},
+{t:"expression",fr:"prix en centimes (alf = 10 dinars)",v:"alf, mya…",n:"Au quotidien, les prix se disent en centimes : alf = 1 000 centimes = 10 DA, khamsin alf = 500 DA, melyoun = 10 000 DA."}
 ];
-const $ = id => document.getElementById(id);
-let bd, chantierCourant = null, catCourante = null, flux = null, retourGalerie = 'chantier';
 
-/* ---------- Base de données locale ---------- */
-function ouvrirBD(){
-  return new Promise((ok, ko) => {
-    const r = indexedDB.open('terrain', 1);
-    r.onupgradeneeded = () => {
-      const d = r.result;
-      d.createObjectStore('chantiers', {keyPath:'id'});
-      d.createObjectStore('photos', {keyPath:'id', autoIncrement:true}).createIndex('chantier', 'chantier');
-    };
-    r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
-  });
-}
-function req(magasin, mode, fn){
-  return new Promise((ok, ko) => {
-    const t = bd.transaction(magasin, mode), r = fn(t.objectStore(magasin));
-    t.oncomplete = () => ok(r && r.result); t.onerror = t.onabort = () => ko(t.error);
-  });
-}
-const tousChantiers = () => req('chantiers', 'readonly', s => s.getAll());
-const sauverChantier = c => req('chantiers', 'readwrite', s => s.put(c));
-const photosDe = id => req('photos', 'readonly', s => s.index('chantier').getAll(id));
-const photosCat = async cat => (await photosDe(chantierCourant.id)).filter(p => p.cat === cat).sort((a, b) => a.n - b.n);
+/* ALPHABET : l = lettre, nm = nom, ar = arabizi */
+const ALPHA=[
+["ء","Hamza","2 (A en début de mot)"],["ا","Alif","a"],["ب","Ba","b"],["ت","Ta","t"],["ث","Tha","th (souvent t dans l'Ouest)"],
+["ج","Jim","j"],["ح","7a","7"],["خ","Kha","5 ou kh"],["د","Dal","d"],["ذ","Dhal","dh"],["ر","Ra","r"],["ز","Zay","z"],
+["س","Sin","s"],["ش","Shin","sh ou ch"],["ص","Sad","s1 (notation peu répandue)"],["ض","Dad","d1 (notation peu répandue)"],["ط","Ta emphatique","t1 ou 6"],
+["ظ","Dha emphatique","dh1, prononcé d1"],["ع","3ayn","3"],["غ","Ghayn","4 ou gh (8 dans certaines régions)"],["ف","Fa","f"],
+["ق","Qaf","9 (souvent prononcé g dans l'Ouest)"],["ك","Kaf","k"],["ل","Lam","l"],["م","Mim","m"],["ن","Noun","n"],["ه","Ha","h"],
+["و","Waw","w / ou"],["ي","Ya","y / i"],["پ","P","p (emprunts)"],["ڨ","G","g (mots berbères, accent bédouin)"],["ڥ","V","v (emprunts)"]
+];
+ALPHA.forEach(([l,nm,ar])=>D.push({t:"lettre",fr:nm,v:l+"  ·  "+ar}));
 
-/* ---------- Outils ---------- */
-const z2 = n => String(n).padStart(2, '0');
-function dateFR(iso){ const d = new Date(iso); return z2(d.getDate()) + '/' + z2(d.getMonth()+1) + '/' + d.getFullYear(); }
-function dateCompacte(iso){ const d = new Date(iso); return '' + d.getFullYear() + z2(d.getMonth()+1) + z2(d.getDate()); }
-function nettoyer(nom){ return nom.toUpperCase().replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim(); }
-function prefixe(nom){ const i = nom.indexOf(' '); return i < 0 ? nom : nom.slice(0, i) + '_' + nom.slice(i+1).replace(/ /g, '-'); }
-function infoCat(code){
-  const f = FIXES.find(x => x.code === code); if (f) return f;
-  const e = extra(code);
-  if (e) return {code, nom: (e.type === 'TR' ? 'TARIÈRE ' : 'PÉNÉTRO ') + code, dossier: (e.type === 'TR' ? 'Tarières/' : 'Pénétros/') + code};
-  if (code.startsWith('TR')) return {code, nom:'TARIÈRE ' + code.slice(2), dossier:'Tarières/' + code};
-  return {code, nom:'PÉNÉTRO ' + code.slice(1), dossier:'Pénétros/' + code};
+/* ---------- AJOUTS : cours Chap 1-9 et Chap 10 ---------- */
+function V(fr,dz,pr,pa,n,d){D.push({t:"verbe",fr,dz,w:{pr:pr.split(" "),pa:pa.split(" ")},a:null,n,d})}
+function N(fr,s,p,n,d){D.push({t:"nom",fr,s,p,n,d})}
+function A(fr,m,f,p,n,d){D.push({t:"adjectif",fr,m,f,p,n,d})}
+function M(fr,v,n,t){D.push({t:t||"mot outil",fr,v,n})}
+function E(fr,v,n){D.push({t:"expression",fr,v,n})}
+
+/* Verbes */
+V("habiter","sken","nesken tesken tsekni yesken tesken nseknou tseknou yseknou","skent skent skenti sken seknet skenna skentou seknou","win teskoun ? = où habites-tu ? (forme avec o, courante dans ton cours)");
+V("travailler","khdem","nekhdem tekhdem tkhedmi yekhdem tekhdem nkhedmou tkhedmou ykhedmou","khdemt khdemt khdemti khdem khedmet khdemna khdemtou khedmou","Nom : khedma (travail).");
+V("étudier, lire","9ra","ne9ra te9ra te9ray ye9ra te9ra ne9raw te9raw ye9raw","9rit 9rit 9riti 9ra 9rat 9rina 9ritou 9raw");
+V("partir, aller","ra7","nrou7 trou7 trou7i yrou7 trou7 nrou7ou trou7ou yrou7ou","ro7t ro7t ro7ti ra7 ra7et ro7na ro7tou ra7ou");
+V("se réveiller, se lever","nad","nnod tnod tnodi ynod tnod nnodou tnodou ynodou","nedt nedt nedti nad nadet nedna nedtou nadou");
+V("fermer","sekker","nsekker tsekker tsekkri ysekker tsekker nsekkrou tsekkrou ysekkrou","sekkert sekkert sekkerti sekker sekkret sekkerna sekkertou sekkrou","Synonyme : bla3 (nebla3).");
+V("fermer (2)","bla3","nebla3 tebla3 tbel3i yebla3 tebla3 nbel3ou tbel3ou ybel3ou","bla3t bla3t bla3ti bla3 bel3et bla3na bla3tou bel3ou");
+V("voyager","safer","nsafer tsafer tsafri ysafer tsafer nsafrou tsafrou ysafrou","safert safert saferti safer safret saferna safertou safrou");
+V("acheter","chra","nechri techri techri yechri techri nechriw techriw yechriw","chrit chrit chriti chra chrat chrina chritou chraw");
+V("pouvoir","9der","ne9der te9der t9edri ye9der te9der n9edrou t9edrou y9edrou","9dert 9dert 9derti 9der 9edret 9derna 9dertou 9edrou");
+V("marcher","tmecha","netmecha tetmecha tetmechay yetmecha tetmecha netmechaw tetmechaw yetmechaw","tmechit tmechit tmechiti tmecha tmechat tmechina tmechitou tmechaw");
+V("ouvrir","7ell","n7ell t7ell t7elli y7ell t7ell n7ellou t7ellou y7ellou","7ellit 7ellit 7elliti 7ell 7ellet 7ellina 7ellitou 7ellou");
+V("patienter","sber","nesber tesber tsebri yesber tesber nsebrou tsebrou ysebrou","sbert sbert sberti sber sebret sberna sbertou sebrou");
+V("attendre, patienter (2)","senna","nsenna tsenna tsennay ysenna tsenna nsennaw tsennaw ysennaw","sennit sennit senniti senna sennat sennina sennitou sennaw");
+V("laisser","khella","nkhelli tkhelli tkhelli ykhelli tkhelli nkhelliw tkhelliw ykhelliw","khellit khellit khelliti khella khellat khellina khellitou khellaw");
+V("connaître, savoir","3ref","ne3ref te3ref t3erfi ye3ref te3ref n3erfou t3erfou y3erfou","3reft 3reft 3refti 3ref 3erfet 3refna 3reftou 3erfou");
+V("écrire","kteb","nekteb tekteb tketbi yekteb tekteb nketbou tketbou yketbou","ktebt ktebt ktebti kteb ketbet ktebna ktebtou ketbou");
+V("marcher, s'en aller","mcha","nemchi temchi temchi yemchi temchi nemchiw temchiw yemchiw","mchit mchit mchiti mcha mchat mchina mchitou mchaw");
+V("poser","7ett","n7ett t7ett t7etti y7ett t7ett n7ettou t7ettou y7ettou","7ettit 7ettit 7ettiti 7ett 7ettet 7ettina 7ettitou 7ettou");
+V("être (verbe kan)","kan","nkoun tkoun tkouni ykoun tkoun nkounou tkounou ykounou","kont kont konti kan kanet konna kontou kanou","Le présent nkoun sert au futur et au subjonctif : nkoun = je serai, que je sois. Pour « je suis », voir rani.");
+V("soigner","dawa","ndawi tdawi tdawi ydawi tdawi ndawiw tdawiw ydawiw","dawit dawit dawiti dawa dawat dawina dawitou dawaw");
+V("photographier","sawwer","nsawwer tsawwer tsawwri ysawwer tsawwer nsawwrou tsawwrou ysawwrou","sawwert sawwert sawwerti sawwer sawwret sawwerna sawwertou sawwrou");
+V("écouter, entendre","sme3","nesme3 tesme3 tsem3i yesme3 tesme3 nsem3ou tsem3ou ysem3ou","sme3t sme3t sme3ti sme3 sem3et sme3na sme3tou sem3ou");
+V("prendre, emporter","dda","nddi tddi tddi yddi tddi nddiw tddiw yddiw","ddit ddit dditi dda ddat ddina dditou ddaw");
+V("enlever","na77a","nna77i tna77i tna77i yna77i tna77i nna77iw tna77iw yna77iw","na77it na77it na77iti na77a na77at na77ina na77itou na77aw");
+V("allumer","che3el","nche3el tche3el tche3li yche3el tche3el nche3lou tche3lou yche3lou","che3elt che3elt che3elti che3el che3let che3elna che3eltou che3lou");
+V("allumer (2)","negda","nnegdi tnegdi tnegdi ynegdi tnegdi nnegdiw tnegdiw ynegdiw","negdit negdit negditi negda negdat negdina negditou negdaw",null,true);
+V("trouver","l9a","nel9a tel9a tel9ay yel9a tel9a nel9aw tel9aw yel9aw","l9it l9it l9iti l9a l9at l9ina l9itou l9aw");
+V("donner","medd","nmedd tmedd tmeddi ymedd tmedd nmeddou tmeddou ymeddou","meddit meddit medditi medd meddet meddina medditou meddou");
+V("appuyer, marcher sur","3fes","ne3fes te3fes t3efsi ye3fes te3fes n3efsou t3efsou y3efsou","3fest 3fest 3festi 3fes 3efset 3fesna 3festou 3efsou");
+V("s'assurer, affirmer","2akked","n2akked t2akked t2akkdi y2akked t2akked n2akkdou t2akkdou y2akkdou","2akkedt 2akkedt 2akkedti 2akked 2akkdet 2akkedna 2akkedtou 2akkdou","Verbe venu de l'arabe classique.");
+V("se former, se composer","tkawen","netkawen tetkawen tetkawni yetkawen tetkawen netkawnou tetkawnou yetkawnou","tkawent tkawent tkawenti tkawen tkawnet tkawenna tkawentou tkawnou","Verbe venu de l'arabe classique.");
+V("toucher","lmes","nelmes telmes tlemsi yelmes telmes nlemsou tlemsou ylemsou","lmest lmest lmesti lmes lemset lmesna lmestou lemsou");
+V("espérer, souhaiter","tmenna","netmenna tetmenna tetmennay yetmenna tetmenna netmennaw tetmennaw yetmennaw","tmennit tmennit tmenniti tmenna tmennat tmennina tmennitou tmennaw","netmenna tkoun labas = j'espère que tu vas bien.");
+V("suivre","tbe3","netbe3 tetbe3 tteb3i yetbe3 tetbe3 nteb3ou tteb3ou yteb3ou","tbe3t tbe3t tbe3ti tbe3 teb3et tbe3na tbe3tou teb3ou");
+V("conseiller","wessa","nwessi twessi twessi ywessi twessi nwessiw twessiw ywessiw","wessit wessit wessiti wessa wessat wessina wessitou wessaw");
+V("jeter","rma","nermi termi termi yermi termi nermiw termiw yermiw","rmit rmit rmiti rma rmat rmina rmitou rmaw");
+V("oublier","nsa","nensa tensa tensay yensa tensa nensaw tensaw yensaw","nsit nsit nsiti nsa nsat nsina nsitou nsaw");
+V("faire ses adieux","wedda3","nwedda3 twedda3 twedd3i ywedda3 twedda3 nwedd3ou twedd3ou ywedd3ou","wedda3t wedda3t wedda3ti wedda3 wedd3et wedda3na wedda3tou wedd3ou");
+V("se balader, chercher","7awes","n7awes t7awes t7awsi y7awes t7awes n7awsou t7awsou y7awsou","7awest 7awest 7awesti 7awes 7awset 7awesna 7awestou 7awsou","n7awes 3lik = je te cherche.");
+V("traduire","terjem","nterjem tterjem tterjmi yterjem tterjem nterjmou tterjmou yterjmou","terjemt terjemt terjemti terjem terjmet terjemna terjemtou terjmou");
+V("entrer, rentrer","dkhel","nedkhel tedkhel tdekhli yedkhel tedkhel ndekhlou tdekhlou ydekhlou","dkhelt dkhelt dkhelti dkhel dekhlet dkhelna dkheltou dekhlou");
+V("raconter, parler","7ka","ne7ki te7ki te7ki ye7ki te7ki ne7kiw te7kiw ye7kiw","7kit 7kit 7kiti 7ka 7kat 7kina 7kitou 7kaw");
+V("naître","zad","nzid tzid tzidi yzid tzid nzidou tzidou yzidou","zedt zedt zedti zad zadet zedna zedtou zadou","Même verbe que « augmenter ». ana zedt fi… = je suis né à…");
+D.push({t:"verbe",fr:"former, fonder",dz:"2asses",d:true,a:null,
+ w:{pr:["n2asses","t2asses","—","y2asses","t2asses","—","—","—"],pa:["2assest","2assest","—","2asses","—","2assesna","2assestou","—"]},
+ n:"Verbe de l'arabe classique : les formes manquantes sont à vérifier."});
+
+/* Formes spéciales : rani (être, état présent) et 3andi (avoir) */
+D.push({t:"verbe",fr:"être (en ce moment)",dz:"rani",w:{pr:["rani","rak","raki","rah","raha","rana","rakom","rahom"],pa:["kont","kont","konti","kan","kanet","konna","kontou","kanou"]},a:null,
+ n:"Pas un vrai verbe : ra + pronom. Au passé, on utilise kan. rani 7orr = je suis libre, rani nekhdem = je suis en train de travailler."});
+D.push({t:"verbe",fr:"avoir",dz:"3and",w:{pr:["3andi","3andek","3andek","3andou","3andha","3andna","3andkom","3andhom"],pa:["kan 3andi","kan 3andek","kan 3andek","kan 3andou","kan 3andha","kan 3andna","kan 3andkom","kan 3andhom"]},a:null,
+ n:"3and (chez) + pronom. Négation : ma 3andich = je n'ai pas."});
+
+/* Noms */
+N("objectif","hadaf","ahdaf");
+N("nationalité","jinsiya","jinsiyat");
+N("ami","sa7eb","s7ab","sa7bi = mon ami, s7abi = mes amis.");
+N("amie","sa7ba","s7abat","sa7bti = mon amie, s7abati = mes amies.");
+N("sœur","okht","khawatat","okhti / khti = ma sœur.");
+N("famille","3a2ila","3a2ilat");
+N("voiture","sayyara","sayyarat");
+N("train","9itar","9itarat","Au quotidien on entend « machina », emprunt au français.");
+N("chat","9ett","9tout");
+N("nature","tabi3a","—");
+N("avion","tayyara","tayyarat");
+N("feuille (de papier)","wer9a","wra9","Même mot que « billet ».");
+N("monsieur","sid","syad","Forme classique : sayyid.");
+N("magasin, boutique","7anout","7wanet");
+N("conte, histoire","9issa","9isas");
+N("histoire (récit)","7kaya","7kayat");
+N("cours, leçon","dars","drous");
+N("fille","bent","bnat","bentou = sa fille (à lui), bentha = sa fille (à elle).");
+N("garçon, fils","weld","wlad","weldha = son fils (à elle).");
+N("enfants","—","drari");
+N("tapis","zerbiya","zrabi");
+N("chose","7aja","7wayej");
+N("bateau","babour","bwaber");
+N("œil","3in","3inin");
+N("pied","rjel","rjlin");
+N("main","yedd","yeddin");
+N("oreille","wedn","wednin");
+N("montre ; heure","sa3a","sa3at");
+N("marchandise","sel3a","sla3");
+N("maman","yemma","—");
+N("papa","baba","—");
+N("arbre","chajra","chjar");
+N("banque","masraf","masarif","Arabe classique. Au quotidien : « banka », emprunt.");
+N("lettre (courrier)","braya","brawat");
+N("nourriture","makla","—");
+N("phrase","jomla","jomal");
+N("directeur","moudir","moudara");
+N("fenêtre","ta9a","ta9at",null,true);
+N("résultat","natija","nata2ij");
+N("mairie","baladiya","baladiyat");
+N("projet","machrou3","machari3");
+N("pensée, esprit","bal","—","fi bali = à mon avis. rod balek = fais attention.");
+N("cuisine (plats cuisinés)","tyab","—");
+N("froid","berd","—");
+N("chaleur","skhana","—");
+N("exemple","mithal","amthila");
+N("propriétaire","moul","mwalin","Féminin : moulat. moul ddar = le propriétaire de la maison.");
+N("groupe","fir9a","fira9");
+N("monde","3alam","3awalim","Savant : 3alim, pluriel 3ulama.");
+N("chanson","ghonya","aghani");
+N("artiste","fennan","fennanin","Féminin : fennana.");
+N("art","fenn","fnoun");
+N("goût","dou9","—");
+N("air ; passion","hwa","—");
+N("vague","mouja","amwaj");
+N("vent","ri7","riya7");
+N("mer ; plage","b7ar","b7our","lb7ar = la mer, la plage.");
+N("amour","7obb","—");
+N("parents","—","waldin","waldiya = mes parents.");
+N("oncle paternel","3amm","3moum","3ammi = mon oncle. weld l3amm = cousin (fils de l'oncle paternel), bent l3amm = cousine.");
+N("tante paternelle","3amma","3ammat","3ammti = ma tante. weld l3amma, bent l3amma = cousin, cousine par la tante paternelle.");
+N("oncle maternel","khal","khwal","khali = mon oncle. weld lkhal, bent lkhal = cousin, cousine.");
+N("tante maternelle","khala","khalat","khalti = ma tante. weld lkhala, bent lkhala = cousin, cousine.");
+N("époux, mari","zawj","azwaj","Plus courant : rajel (rajli = mon mari).");
+N("épouse","zawja","zawjat","Plus courant : mra (mrati = ma femme), pluriel nsa.");
+N("grand-père","jedd","jdoud","jeddi = mon grand-père.");
+N("grand-mère","jedda","jeddat","jeddti = ma grand-mère.");
+N("travail","khedma","khdayem");
+N("lumière (électrique)","dou","adwa","Aussi dhaw.");
+
+/* Adjectifs */
+A("gentil, sage","3a9el","3a9la","3a9lin");
+A("bon","mli7","mli7a","mla7");
+A("beau","chbab","chaba","chbab",null,true);
+A("beau, bien","mzyan","mzyana","mzyanin");
+A("fatigué","3eyyan","3eyyana","3eyyanin");
+A("facile","sahel","sahla","sahlin");
+A("difficile (2)","wa3er","wa3ra","wa3rin");
+A("long, grand","twil","twila","twal");
+A("petit","sghir","sghira","sghar");
+A("cher","ghali","ghalya","ghalyin");
+A("délicieux","bnin","bnina","bninin");
+A("impatient, énervé","m9elle9","m9el9a","m9el9in");
+A("nouveau","jdid","jdida","jdad");
+A("clair, limpide, honnête","safi","safya","safyin");
+A("beau (beauté)","zin","zina","zinin");
+A("vide","khawi","khawya","khawyin");
+A("heureux, content","far7an","far7ana","far7anin");
+A("affamé","ji3an","ji3ana","ji3anin","rani ji3an = j'ai faim.");
+A("occupé","mechghoul","mechghoula","mechghoulin");
+A("libre","7orr","7orra","7orrin");
+
+/* Mots outils */
+M("où","win","Arabe classique : ayna.");
+M("de (appartenance)","ta3","ta3i = à moi, ta3ek = à toi.");
+M("avec (un objet)","b / bel","Ex. bel sif = avec l'épée.");
+M("dans, en, à","fi");
+M("de, depuis","men");
+M("et","w");
+M("pour, afin de","bach");
+M("aussi","tani","Aussi thani. ana tani = moi aussi.");
+M("après","mor","Aussi mba3d.");
+M("non","la");
+M("oui (2)","wah","Aussi iih, na3am (classique).");
+M("mais","bessa7","Aussi amma.");
+M("ce, cette (devant un nom)","had","had ddar = cette maison.");
+M("celui-ci, ceci","hada","Féminin : hadi. Pluriel : hadou.");
+M("celui-là","hadak","Féminin : hadik. Pluriel : hadouk.");
+M("ces","hadou","Là-bas : hadouk.");
+M("parce que (2)","li2anno");
+M("là-bas","hnak");
+M("ici","hna");
+M("droite","limin","Gauche : liser.");
+M("peut-être","wa9ila");
+M("chez","3and");
+M("chaque, tout","koll");
+M("toujours","dima","Aussi daymen.");
+M("aujourd'hui","lyoum");
+M("demain","ghedwa");
+M("un peu","chwiya");
+M("bien, très bien","ghaya");
+
+/* Phrases types */
+E("je me présente","n9eddem nefsi","salam, n9eddem nefsi = bonjour, je me présente.");
+E("je m'appelle","ana smi");
+E("comment t'appelles-tu ?","wach smek ?","Aussi kifach smek ?");
+E("où habites-tu ?","win teskoun ?");
+E("je suis né (à)","ana zedt (fi)");
+E("j'ai … ans","ana fi 3omri …");
+E("enchanté","mecharfin");
+E("je suis heureux de cette rencontre","ana far7an bhad li9a2","Féminin : far7ana.");
+E("prends soin de toi","thalla fi rou7ek","Féminin : thallay. Pluriel : thallaw fi rouwa7kom.");
+E("je voudrais","ma dabiya","Typique de l'Ouest.");
+E("il faut","lazem");
+E("j'ai besoin","khassni","khassa bik = propre à toi.");
+E("viens","arwa7","Féminin : arwa7i. Pluriel : arwa7ou.");
+E("mieux","khir");
+E("c'est pas grave","ma3lich");
+E("je suis en train de…","rani …");
+E("bonjour (le matin)","sba7 lkhir");
+E("bonsoir","msa lkhir");
+E("bonne nuit","tesba7 3la khir","Arabe classique : layla sa3ida.");
+E("au revoir","bslama");
+E("merci","sa7it","Pluriel : sa7itou. Arabe classique : choukran.");
+E("à bientôt","nchoufek 9rib","nchoufek mba3d = à plus tard, nchoufek ghedwa = à demain.");
+E("comment ça va ?","kirak ?","Féminin : kiraki ? Réponse : rani labas.");
+E("avec grand plaisir","3la rass wel 3in");
+E("tu m'as manqué","twa7achtek");
+E("qu'est-ce que tu fais ?","wach rak dir ?","Féminin : wach raki diri ? Pluriel : wach rakom dirou ?");
+E("tu es occupé ?","rak mechghoul ?");
+E("je veux juste un peu","n7ebb ghir chwiya");
+E("je veux en rajouter","n7ebb nzid");
+E("ça suffit","barakat");
+E("je pense que…","tbanli …","Aussi 7sabni (je croyais que…).");
+E("tiens (prends)","hak","Féminin : haki. Pluriel : hakou.");
+E("c'est impossible","m7al");
+E("espérons","netmennaw");
+E("tu ne sais pas ce que tu m'as fait !","ma dart fiya !","Féminin : ma darti fiya. Pluriel : ma dartou fiya.");
+E("avant que","9bel ma");
+
+/* VERBES : le fichier verbes.js (modifiable avec l'appli admin) remplace la liste intégrée */
+if(Array.isArray(window.VERBES)&&window.VERBES.length){
+  for(let i=D.length-1;i>=0;i--)if(D[i].t==="verbe")D.splice(i,1);
+  window.VERBES.forEach(v=>D.push(Object.assign({},v,{t:"verbe"})));
 }
-// Sondages du chantier : numérotés (TR1, P1…) + sondages supplémentaires au nom libre (P1b…)
-function sondages(c){
-  const l = [], ex = c.extras || [];
-  for (let i = 1; i <= c.tarieres; i++) l.push('TR' + i); ex.filter(e => e.type === 'TR').forEach(e => l.push(e.nom));
-  for (let i = 1; i <= c.penetros; i++) l.push('P' + i); ex.filter(e => e.type === 'P').forEach(e => l.push(e.nom));
-  return l;
-}
-const extra = s => chantierCourant && (chantierCourant.extras || []).find(x => x.nom === s);
-function typeSondage(s){ const e = extra(s); return e ? e.type : (s.startsWith('TR') ? 'TR' : 'P'); }
-function montrer(id){ document.querySelectorAll('.ecran').forEach(e => e.classList.toggle('actif', e.id === id)); window.scrollTo(0, 0); }
-function vibrer(){ if (navigator.vibrate) navigator.vibrate(40); }
-function fermerFenetre(){ $('fenetre').classList.remove('ouverte'); }
-// Fenêtre de choix : titre + liste de boutons [{texte, style, action}]
-function choisir(titre, boutons){
-  const b = $('boite'); b.innerHTML = '';
-  const h = document.createElement('h2'); h.textContent = titre; b.appendChild(h);
-  for (const o of boutons){
-    if (o.champ){ const i = document.createElement('input'); i.type = 'text'; i.id = o.id || 'champLibre'; i.placeholder = o.champ; if (o.valeur) i.value = o.valeur; if (o.mode) i.inputMode = o.mode; b.appendChild(i); continue; }
-    const x = document.createElement('button'); x.textContent = o.texte; if (o.style) x.className = o.style;
-    x.onclick = () => { fermerFenetre(); o.action && o.action(); }; b.appendChild(x);
+const KAN=["kont","kont","konti","kan","kanet","konna","kontou","kanou"];
+const imp=pr=>pr.map((x,i)=>!x||x==="—"?"—":KAN[i]+" "+x);
+
+/* CONVERTISSEUR : nombre en chiffres → darija */
+const U=["sifr","wa7ed","zouj","tlata","reb3a","khamsa","setta","seb3a","tmenya","tes3a","3achra","7dach","tnach","tlettach","rba3tach","khamstach","settach","sba3tach","tmentach","tsa3tach"];
+const T=["","","3achrin","tlatin","reb3in","khamsin","settin","seb3in","tmanin","tes3in"];
+const S=["","","","tlet","rbe3","khems","sett","sbe3","tmen","tes3","3achr"];
+function under1000(n,beforeNoun){
+  const h=Math.floor(n/100),r=n%100,parts=[];
+  if(h===1)parts.push(r===0&&beforeNoun?"myat":"mya");
+  else if(h===2)parts.push("mitin");
+  else if(h>2)parts.push(S[h]+(r===0&&beforeNoun?" myat":" mya"));
+  if(r){
+    if(r<20)parts.push(r===2&&n>100?"zouj":U[r]);
+    else{const u=r%10;parts.push(u?(u===2?"tnin":U[u])+" w"+T[Math.floor(r/10)]:T[Math.floor(r/10)])}
   }
-  $('fenetre').classList.add('ouverte');
+  return parts.join(" w ");
 }
+function group(g,one,two,pl){
+  if(g===1)return one;
+  if(g===2)return two;
+  if(g<=10)return S[g]+" "+pl;
+  return under1000(g,true)+" "+one;
+}
+function toDarija(n){
+  if(n===0)return "sifr";
+  const b=Math.floor(n/1e9),m=Math.floor(n/1e6)%1000,k=Math.floor(n/1000)%1000,r=n%1000,parts=[];
+  if(b)parts.push(group(b,"milyar","zouj mlayer","mlayer"));
+  if(m)parts.push(group(m,"melyoun","zouj mlayen","mlayen"));
+  if(k)parts.push(group(k,"alf","alfin","alaf"));
+  if(r)parts.push(under1000(r,false));
+  return parts.join(" w ");
+}
+/* ---------- fin des données ---------- */
 
-/* ---------- Accueil ---------- */
-const mailValide = m => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m || '');
-const MAIL_FOREUR = () => { try { return localStorage.getItem('mailForeur') || ''; } catch (e) { return ''; } };
-function majMailEtat(){
-  const m = MAIL_FOREUR();
-  $('mailEtat').textContent = mailValide(m) ? '✔ Copie envoyée à ' + m : 'Aucune adresse : pas de copie.';
-}
-$('mailForeur').onchange = () => {
-  const m = $('mailForeur').value.trim();
-  try { if (!m) localStorage.removeItem('mailForeur'); else if (mailValide(m)) localStorage.setItem('mailForeur', m); } catch (e) {}
-  if (m && !mailValide(m)) $('mailEtat').textContent = 'Adresse incorrecte, vérifiez-la.'; else majMailEtat();
-};
-async function afficherAccueil(){
-  chantierCourant = null;
-  const liste = (await tousChantiers()).sort((a, b) => b.date.localeCompare(a.date));
-  const zone = $('listeChantiers'); zone.innerHTML = '';
-  for (const c of liste){
-    const b = document.createElement('button');
-    b.className = 'tuile' + (c.envoye ? ' fait' : '');
-    b.innerHTML = '<span></span><span class="nb"></span>';
-    b.firstChild.textContent = c.nom;
-    b.lastChild.textContent = dateFR(c.date) + (c.envoye ? ' · envoyé' : ' · en cours');
-    b.onclick = () => ouvrirChantier(c);
-    zone.appendChild(b);
-  }
-  $('mailForeur').value = MAIL_FOREUR(); majMailEtat();
-  $('version').textContent = 'Version ' + VERSION + (CLE() ? ' · reliée au bureau' : ' · PAS RELIÉE AU BUREAU');
-  montrer('accueil');
-}
-async function creerOuOuvrir(nomBrut, lienPlan){
-  const nom = nettoyer(nomBrut); if (!nom) return;
-  const liste = await tousChantiers();
-  let c = liste.find(x => x.nom === nom && !x.envoye) || liste.find(x => x.nom === nom);
-  if (!c) c = {id: Date.now().toString(36), nom, date: new Date().toISOString(), tarieres:0, penetros:0, envoye:false, implantation:{}};
-  if (lienPlan) c.lienPT = lienPlan;
-  await sauverChantier(c);
-  ouvrirChantier(c);
-}
-$('btnNouveau').onclick = () => { creerOuOuvrir($('nomChantier').value); $('nomChantier').value = ''; };
-
-/* ---------- Écran chantier ---------- */
-async function ouvrirChantier(c){
-  chantierCourant = c; c.implantation = c.implantation || {};
-  $('chNom').textContent = c.nom; $('chDate').textContent = 'Chantier du ' + dateFR(c.date);
-  const photos = await photosDe(c.id), nb = {};
-  photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
-  const g = $('grille'); g.innerHTML = '';
-  const tuile = (code, cls, action, texteNb) => {
-    const i = infoCat(code), b = document.createElement('button'), n = nb[code] || 0;
-    b.className = 'tuile ' + (cls || '') + (n || texteNb ? ' fait' : '');
-    b.innerHTML = '<span></span><span class="nb"></span>';
-    b.firstChild.textContent = i.nom;
-    b.lastChild.textContent = texteNb || (n ? n + ' photo' + (n > 1 ? 's' : '') : 'aucune photo');
-    b.onclick = action || (() => ouvrirCamera(code));
-    g.appendChild(b); return b;
-  };
-  const ajout = (texte, champ) => {
-    const b = document.createElement('button'); b.className = 'tuile ajout'; b.textContent = texte;
-    b.onclick = async () => { c[champ]++; await sauverChantier(c); vibrer(); ouvrirCamera((champ === 'tarieres' ? 'TR' : 'P') + c[champ]); };
-    g.appendChild(b);
-  };
-  tuile('SITE'); tuile('PANO', '', ouvrirPanorama);
-  for (let i = 1; i <= c.tarieres; i++) tuile('TR' + i);
-  (c.extras || []).filter(e => e.type === 'TR').forEach(e => tuile(e.nom));
-  ajout('+ TARIÈRE', 'tarieres');
-  for (let i = 1; i <= c.penetros; i++) tuile('P' + i);
-  (c.extras || []).filter(e => e.type === 'P').forEach(e => tuile(e.nom));
-  ajout('+ PÉNÉTRO', 'penetros');
-  tuile('FICHE', 'large');
-  const ta = document.createElement('button'); ta.className = 'tuile large' + (photos.length ? ' fait' : '');
-  ta.innerHTML = '<span>ALBUM DU CHANTIER</span><span class="nb"></span>';
-  ta.lastChild.textContent = photos.length ? 'toutes les photos (' + photos.length + ') · ajouter depuis le téléphone' : 'ajouter des photos du téléphone';
-  ta.onclick = () => ouvrirGalerie('*', 'chantier'); g.appendChild(ta);
-  const places = Object.keys(c.implantation).length;
-  const tp = tuile('PLAN', 'large', ouvrirPlan, c.planImage ? (places ? places + ' sondage' + (places > 1 ? 's' : '') + ' positionné' + (places > 1 ? 's' : '') : 'plan chargé') : '');
-  tp.firstChild.textContent = "PLAN D'IMPLANTATION"; if (!c.planImage) tp.lastChild.textContent = 'à annoter';
-  montrer('chantier');
-}
-$('btnRetourAccueil').onclick = afficherAccueil;
-
-/* ---------- Enregistrement d'une photo ---------- */
-async function versCanvas(source, max){
-  const img = await createImageBitmap(source);
-  const k = Math.min(1, max / Math.max(img.width, img.height));
-  const cv = document.createElement('canvas');
-  cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-  if (img.close) img.close();
-  return cv;
-}
-const enJpeg = cv => new Promise(ok => cv.toBlob(ok, 'image/jpeg', QUALITE));
-// Marquage des photos de prélèvement des tarières : nom en haut à gauche, profondeur en haut à droite
-const estTariere = cat => !FIXES.some(f => f.code === cat) && typeSondage(cat) === 'TR';
-const formatProf = p => '-' + p.toFixed(2).replace('.', ',') + ' m/TA';
-function marquer(cv, gauche, droite){
-  const ctx = cv.getContext('2d'), t = Math.round(Math.min(cv.width, cv.height) * 0.07), m = Math.round(t * 0.4);
-  ctx.font = 'bold ' + t + 'px sans-serif'; ctx.textBaseline = 'middle';
-  const cadre = (txt, x, alignDroite) => {
-    const w = ctx.measureText(txt).width + m * 2, h = t + m * 1.4, x0 = alignDroite ? cv.width - x - w : x;
-    ctx.fillStyle = '#fff'; ctx.fillRect(x0, m, w, h);
-    ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(3, t / 10); ctx.strokeRect(x0, m, w, h);
-    ctx.fillStyle = '#000'; ctx.fillText(txt, x0 + m, m + h / 2);
-  };
-  if (gauche) cadre(gauche, m, false);
-  if (droite) cadre(droite, m, true);
-}
-async function enregistrer(source, cat, max, sansMarque){
-  const cv = await versCanvas(source, max || TAILLE_MAX);
-  let prof = null, marque = false;
-  if (estTariere(cat) && etiquetteActive && !sansMarque){
-    prof = (chantierCourant.profondeurs || {})[cat]; prof = prof == null ? null : prof; marque = true;
-    marquer(cv, cat, prof == null ? '' : formatProf(prof));
-  }
-  const blob = await enJpeg(cv);
-  const photos = await photosCat(cat);
-  const n = photos.reduce((m, p) => Math.max(m, p.n), 0) + 1;
-  const nom = prefixe(chantierCourant.nom) + '_' + cat + '_' + z2(n) + '.jpg';
-  await req('photos', 'readwrite', s => s.add({chantier: chantierCourant.id, cat, n, nom, heure: new Date().toISOString(), blob, prof, marque}));
-  if (chantierCourant.envoye){ chantierCourant.envoye = false; await sauverChantier(chantierCourant); }
-}
-
-/* ---------- Caméra ---------- */
-async function majCamera(){
-  const p = await photosCat(catCourante);
-  $('btnCamPhotos').textContent = 'PHOTOS (' + p.length + ')';
-  const v = $('vignette');
-  if (v.src) URL.revokeObjectURL(v.src);
-  if (p.length){ v.src = URL.createObjectURL(p[p.length - 1].blob); v.style.display = 'block'; } else { v.removeAttribute('src'); v.style.display = 'none'; }
-}
-let etiquetteActive = true;
-function majProf(){
-  const tar = estTariere(catCourante);
-  $('profBar').style.display = tar ? 'flex' : 'none';
-  if (!tar) return;
-  const p = (chantierCourant.profondeurs || {})[catCourante];
-  $('btnEtiq').innerHTML = 'ÉTIQUETTE<br>' + (etiquetteActive ? 'OUI' : 'NON'); $('btnEtiq').className = etiquetteActive ? '' : 'off';
-  $('profVal').textContent = p == null ? 'PROFONDEUR ?' : formatProf(p);
-  ['btnProfMoins', 'btnProfPlus', 'profVal'].forEach(id => $(id).style.visibility = etiquetteActive ? 'visible' : 'hidden');
-}
-async function reglerProf(v){
-  const c = chantierCourant; c.profondeurs = c.profondeurs || {};
-  c.profondeurs[catCourante] = v == null ? null : Math.max(0, Math.round(v * 100) / 100);
-  majProf(); await sauverChantier(c);
-}
-$('btnProfPlus').onclick = () => { const p = (chantierCourant.profondeurs || {})[catCourante]; reglerProf(p == null ? 0.1 : p + 0.1); vibrer(); };
-$('btnProfMoins').onclick = () => { const p = (chantierCourant.profondeurs || {})[catCourante]; if (p != null) reglerProf(p <= 0.1 ? null : p - 0.1); vibrer(); };
-$('profVal').onclick = () => {
-  const p = (chantierCourant.profondeurs || {})[catCourante];
-  choisir('Profondeur du prélèvement de ' + catCourante + ' (en mètres)', [
-    {champ: 'ex. 0,80', id: 'champProf', valeur: p == null ? '' : String(p).replace('.', ','), mode: 'decimal'},
-    {texte: 'VALIDER', action: () => { const v = parseFloat(($('champProf').value || '').replace(',', '.').replace('-', '')); reglerProf(isNaN(v) ? null : v); }},
-    {texte: 'SANS PROFONDEUR', style: 'secondaire', action: () => reglerProf(null)},
-    {texte: 'ANNULER', style: 'discret'}
-  ]);
-};
-$('btnEtiq').onclick = () => { etiquetteActive = !etiquetteActive; majProf(); vibrer(); };
-async function ouvrirCamera(code){
-  catCourante = code; $('camCat').textContent = infoCat(code).nom; etiquetteActive = true; majProf();
-  if (!flux){
-    const choix = objectifs && objectifs.length > 1 && objectifIdx ? {deviceId: {exact: objectifs[objectifIdx].deviceId}} : {facingMode: {ideal: 'environment'}};
-    try { flux = await navigator.mediaDevices.getUserMedia({audio:false, video:{...choix, width:{ideal:3840}, height:{ideal:2160}}}); }
-    catch (e) { flux = null; }
-  }
-  if (!flux){ $('fichierPhoto').click(); return; }
-  $('video').srcObject = flux;
-  preparerObjectif();
-  await majCamera();
-  montrer('camera');
-  if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {});
-}
-// Objectif grand angle (0,5x) : zoom < 1 si le téléphone le permet, sinon changement de caméra arrière
-let objectifs = null, objectifIdx = 0, zoomMini = null, grandAngle = false;
-async function preparerObjectif(){
-  const b = $('btnObjectif'); b.style.display = 'none';
-  try {
-    const piste = flux.getVideoTracks()[0], caps = piste.getCapabilities ? piste.getCapabilities() : {};
-    if (caps.zoom && caps.zoom.min < 1){
-      zoomMini = caps.zoom.min; b.style.display = 'block';
-      if (grandAngle) await piste.applyConstraints({advanced: [{zoom: zoomMini}]});
-      b.textContent = grandAngle ? '1x' : '0,5x'; return;
-    }
-    zoomMini = null;
-    if (!objectifs){
-      const l = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
-      const arriere = l.filter(d => /back|arri|rear|environment/i.test(d.label));
-      objectifs = arriere.length > 1 ? arriere : [];
-      const actuel = piste.getSettings().deviceId; objectifIdx = Math.max(0, objectifs.findIndex(d => d.deviceId === actuel));
-    }
-    if (objectifs.length > 1){ b.style.display = 'block'; b.textContent = 'OBJECTIF ' + (objectifIdx + 1) + '/' + objectifs.length; }
-  } catch (e) { b.style.display = 'none'; }
-}
-$('btnObjectif').onclick = async () => {
-  vibrer();
-  try {
-    if (zoomMini != null){
-      grandAngle = !grandAngle;
-      await flux.getVideoTracks()[0].applyConstraints({advanced: [{zoom: grandAngle ? zoomMini : 1}]});
-      $('btnObjectif').textContent = grandAngle ? '1x' : '0,5x'; return;
-    }
-    if (!objectifs || objectifs.length < 2) return;
-    objectifIdx = (objectifIdx + 1) % objectifs.length;
-    flux.getTracks().forEach(t => t.stop());
-    flux = await navigator.mediaDevices.getUserMedia({audio: false, video: {deviceId: {exact: objectifs[objectifIdx].deviceId}, width: {ideal: 3840}, height: {ideal: 2160}}});
-    $('video').srcObject = flux; preparerObjectif();
-  } catch (e) { alert('Changement d\'objectif impossible sur ce téléphone.'); }
-};
-function couperCamera(){ if (flux){ flux.getTracks().forEach(t => t.stop()); flux = null; } $('video').srcObject = null; }
-let enCours = false;
-$('declencheur').onclick = async () => {
-  if (enCours || !flux) return; enCours = true;
-  const f = $('flash'); f.classList.add('on'); vibrer(); setTimeout(() => f.classList.remove('on'), 60);
-  try {
-    let source = null;
-    const piste = flux.getVideoTracks()[0];
-    if (window.ImageCapture){
-      try { source = await Promise.race([new ImageCapture(piste).takePhoto(), new Promise((_, ko) => setTimeout(ko, 4000))]); } catch (e) { source = null; }
-    }
-    if (!source){
-      const v = $('video'), cv = document.createElement('canvas');
-      cv.width = v.videoWidth; cv.height = v.videoHeight;
-      cv.getContext('2d').drawImage(v, 0, 0); source = cv;
-    }
-    await enregistrer(source, catCourante);
-    await majCamera();
-  } catch (e) { alert('Photo non enregistrée : ' + e.message); }
-  enCours = false;
-};
-$('btnCamRetour').onclick = () => { couperCamera(); ouvrirChantier(chantierCourant); };
-$('btnCamPhotos').onclick = () => { couperCamera(); ouvrirGalerie(catCourante, 'camera'); };
-$('fichierPhoto').onchange = async e => { for (const f of e.target.files) await enregistrer(f, catCourante); e.target.value = ''; ouvrirChantier(chantierCourant); };
-
-/* ---------- Galerie : voir et supprimer n'importe quelle photo ---------- */
-const ordreCats = c => ['SITE', 'PANO', ...sondages(c), 'FICHE'];
-async function ouvrirGalerie(cat, retour){
-  catCourante = cat; retourGalerie = retour;
-  const global = cat === '*', c0 = chantierCourant, ordre = ordreCats(c0);
-  $('galTitre').textContent = global ? 'ALBUM DU CHANTIER' : infoCat(cat).nom;
-  let p = global ? await photosDe(c0.id) : await photosCat(cat);
-  if (global) p.sort((a, b) => ((ordre.indexOf(a.cat) + 1 || 99) - (ordre.indexOf(b.cat) + 1 || 99)) || a.n - b.n);
-  $('galSous').textContent = (global ? p.length + ' photos · ' : '') + 'touchez une photo pour la gérer';
-  const g = $('galGrille');
-  g.querySelectorAll('img').forEach(i => URL.revokeObjectURL(i.src)); g.innerHTML = '';
-  for (const ph of p){
-    const d = document.createElement('div'), i = document.createElement('img'); d.className = 'vg';
-    i.src = URL.createObjectURL(ph.blob); i.loading = 'lazy'; i.onclick = () => ouvrirVisionneuse(ph); d.appendChild(i);
-    if (global){ const t = document.createElement('span'); t.textContent = ph.cat === 'SITE' ? 'Site' : ph.cat === 'PANO' ? 'Panorama' : ph.cat === 'FICHE' ? 'Fiche' : ph.cat; d.appendChild(t); }
-    g.appendChild(d);
-  }
-  $('galVide').style.display = p.length ? 'none' : 'block';
-  if (global){ $('btnAnnulerSondage').style.display = 'none'; montrer('galerie'); return; }
-  const c = chantierCourant, dernier = cat === 'TR' + c.tarieres || cat === 'P' + c.penetros || !!extra(cat);
-  $('btnAnnulerSondage').style.display = !p.length && dernier && !FIXES.some(f => f.code === cat) ? 'block' : 'none';
-  montrer('galerie');
-}
-$('btnGalRetour').onclick = () => {
-  if (retourGalerie === 'camera') ouvrirCamera(catCourante);
-  else if (retourGalerie === 'panorama') ouvrirPanorama();
-  else ouvrirChantier(chantierCourant);
-};
-$('btnAnnulerSondage').onclick = async () => {
-  const c = chantierCourant;
-  if (extra(catCourante)) c.extras = c.extras.filter(e => e.nom !== catCourante);
-  else if (catCourante.startsWith('TR')) c.tarieres--; else c.penetros--;
-  delete c.implantation[catCourante];
-  await sauverChantier(c); ouvrirChantier(c);
-};
-let photoVue = null;
-function ouvrirVisionneuse(ph){
-  photoVue = ph; $('visTitre').textContent = infoCat(ph.cat).nom + ' · n° ' + ph.n;
-  $('btnChangerCat').style.display = 'block';
-  const g = $('grande'); if (g.src) URL.revokeObjectURL(g.src); g.src = URL.createObjectURL(ph.blob);
-  montrer('visionneuse');
-}
-$('btnVisRetour').onclick = () => ouvrirGalerie(catCourante, retourGalerie);
-// Choix d'une catégorie (pour les photos ajoutées depuis le téléphone ou reclassées)
-function choisirCategorie(titre, suite){
-  choisir(titre, [...ordreCats(chantierCourant).map(code => ({texte: infoCat(code).nom, style: 'secondaire', action: () => suite(code)})), {texte: 'ANNULER', style: 'discret'}]);
-}
-async function prochainNumero(cat){ return (await photosCat(cat)).reduce((m, p) => Math.max(m, p.n), 0) + 1; }
-$('btnChangerCat').onclick = () => choisirCategorie('Ranger cette photo dans :', async code => {
-  if (code === photoVue.cat) return;
-  const n = await prochainNumero(code);
-  photoVue.cat = code; photoVue.n = n; photoVue.nom = prefixe(chantierCourant.nom) + '_' + code + '_' + z2(n) + '.jpg';
-  await req('photos', 'readwrite', st => st.put(photoVue)); vibrer();
-  ouvrirGalerie(catCourante, retourGalerie);
+const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/['’\s]+/g," ").replace(/5/g,"kh").replace(/4/g,"gh").replace(/sh/g,"ch").trim();
+D.forEach(e=>{
+  const parts=[e.fr,e.dz,e.s,e.p,e.m,e.f,e.v,e.a&&typeof e.a==="string"?e.a:"",e.n];
+  if(e.w){parts.push(...e.w.pr,...e.w.pa)}
+  if(e.a&&typeof e.a==="object"){parts.push(...e.a.pr,...e.a.pa)}
+  if(e.pact)parts.push(...e.pact);if(e.ppas)parts.push(...e.ppas);
+  e.k=norm(parts.join(" "));
 });
-$('btnGalAjouter').onclick = () => $('fichierAjout').click();
-$('fichierAjout').onchange = async e => {
-  const fichiers = [...e.target.files]; e.target.value = ''; if (!fichiers.length) return;
-  const ajouter = async code => {
-    $('galSous').textContent = 'Ajout de ' + fichiers.length + ' photo(s)…';
-    for (const f of fichiers){ try { await enregistrer(f, code, code === 'PANO' ? 4096 : TAILLE_MAX, true); } catch (err) {} }
-    vibrer(); ouvrirGalerie(catCourante, retourGalerie);
-  };
-  if (catCourante === '*') choisirCategorie('Dans quelle catégorie ranger ces ' + fichiers.length + ' photo(s) ?', ajouter);
-  else ajouter(catCourante);
-};
-$('btnSupprPhoto').onclick = () => choisir('Supprimer cette photo ?', [
-  {texte:'OUI, SUPPRIMER', style:'danger', action: async () => { await req('photos', 'readwrite', s => s.delete(photoVue.id)); vibrer(); ouvrirGalerie(catCourante, retourGalerie); }},
-  {texte:'NON, GARDER', style:'secondaire'}
-]);
+const TYPES=["tout","verbe","nom","adjectif","mot outil","expression","nombre","lettre"];
+const LAB={"tout":"Tout","verbe":"Verbes","nom":"Noms","adjectif":"Adjectifs","mot outil":"Mots outils","expression":"Expressions","nombre":"Nombres","lettre":"Alphabet"};
+let type="tout";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-/* ---------- Panorama : appareil photo du téléphone, puis import ---------- */
-async function ouvrirPanorama(){
-  catCourante = 'PANO';
-  const n = (await photosCat('PANO')).length;
-  $('btnPanoVoir').textContent = 'VOIR / SUPPRIMER (' + n + ')';
-  montrer('panorama');
+function head(e){
+  if(e.t==="verbe")return e.dz;
+  if(e.t==="nom")return e.s+(e.p&&e.p!=="—"?" / "+e.p:"");
+  if(e.t==="adjectif")return e.m+" / "+e.f+" / "+e.p;
+  return e.v+(e.a?" · "+e.a:"");
 }
-let panoLance = false;
-$('btnPanoCamera').onclick = () => {
-  catCourante = 'PANO'; panoLance = true;
-  location.href = 'intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end';
-  setTimeout(() => { if (!document.hidden && panoLance) $('panoAide').innerHTML = 'Si l\'appareil photo ne s\'est pas ouvert : quittez l\'appli, ouvrez l\'appareil photo du téléphone en mode <b>Panorama</b>, prenez la vue, puis revenez ici et touchez <b>2. AJOUTER LE PANORAMA PRIS</b>.'; }, 2500);
-};
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && panoLance && $('panorama').classList.contains('actif')){
-    panoLance = false; $('btnPanoAjouter').className = 'envoyer';
-    $('panoAide').innerHTML = 'Touchez maintenant <b>2. AJOUTER LE PANORAMA PRIS</b> et choisissez-le (c\'est la photo la plus récente).';
+function body(e){
+  let h="";
+  if(e.t==="nom")h+=`<dl class="forms"><dt>Singulier</dt><dd>${esc(e.s)}</dd><dt>Pluriel</dt><dd>${esc(e.p)}</dd></dl>`;
+  if(e.t==="adjectif")h+=`<dl class="forms"><dt>Masculin</dt><dd>${esc(e.m)}</dd><dt>Féminin</dt><dd>${esc(e.f)}</dd><dt>Pluriel</dt><dd>${esc(e.p)}</dd></dl>`;
+  if(["mot outil","expression","nombre","lettre"].includes(e.t)){
+    h+=`<dl class="forms"><dt>${e.a?'<span class="tag w">Ouest</span>':"Forme"}</dt><dd>${esc(e.v)}</dd>${e.a?`<dt><span class="tag a">Alger / Est</span></dt><dd>${esc(e.a)}</dd>`:""}</dl>`;
   }
-});
-$('fichierPano').onchange = async e => { for (const f of e.target.files) await enregistrer(f, 'PANO', 4096); e.target.value = ''; vibrer(); ouvrirPanorama(); };
-$('btnPanoAjouter').onclick = () => { catCourante = 'PANO'; $('btnPanoAjouter').className = ''; $('fichierGalerie').click(); };
-$('btnPanoVoir').onclick = () => ouvrirGalerie('PANO', 'panorama');
-$('btnPanoRetour').onclick = () => ouvrirChantier(chantierCourant);
-$('fichierGalerie').onchange = async e => {
-  for (const f of e.target.files) await enregistrer(f, catCourante, 4096, true);   // panoramas : plus large
-  e.target.value = ''; ouvrirPanorama();
-};
-
-/* ---------- Plan d'implantation ---------- */
-let planImg = null, zoom = 1, sondageChoisi = null;
-async function chargerPdfjs(){
-  if (window.pdfjsLib) return window.pdfjsLib;
-  await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = PDFJS + 'pdf.min.js'; s.onload = ok; s.onerror = () => ko(new Error('connexion internet nécessaire pour lire un PDF la première fois')); document.head.appendChild(s); });
-  const code = await (await fetch(PDFJS + 'pdf.worker.min.js')).text();
-  pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([code], {type:'text/javascript'}));
-  return pdfjsLib;
-}
-async function pdfVersImage(fichier){
-  const lib = await chargerPdfjs();
-  const doc = await lib.getDocument({data: await fichier.arrayBuffer()}).promise;
-  const page = await doc.getPage(Math.min(3, doc.numPages));   // page 3 = plan d'implantation des sondages
-  const vp1 = page.getViewport({scale: 1}), k = 2400 / Math.max(vp1.width, vp1.height), vp = page.getViewport({scale: k});
-  const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
-  await page.render({canvasContext: cv.getContext('2d'), viewport: vp}).promise;
-  return enJpeg(cv);
-}
-async function ouvrirPlan(){
-  const c = chantierCourant; c.implantation = c.implantation || {};
-  $('planTitre').textContent = c.nom;
-  $('btnOuvrirPT').style.display = c.lienPT ? 'block' : 'none';
-  $('btnImporterPlan').textContent = c.lienPT ? '2. CHARGER LE PLAN (PDF OU IMAGE)' : 'CHARGER LE PLAN (PDF OU IMAGE)';
-  if (!c.planImage){ $('planVide').style.display = 'flex'; $('planPlein').style.display = 'none'; montrer('plan'); return; }
-  $('planVide').style.display = 'none'; $('planPlein').style.display = 'flex';
-  planImg = await createImageBitmap(c.planImage);
-  sondageChoisi = null; deplacement = null; majPuces(); dessinerPlan();
-  montrer('plan');
-}
-$('btnOuvrirPT').onclick = () => window.open(chantierCourant.lienPT, '_blank');
-$('btnImporterPlan').onclick = () => $('fichierPlan').click();
-$('btnChangerPlan').onclick = () => choisir('Changer de plan ?', [
-  {texte:'OUI, CHARGER UN AUTRE PLAN (les positions sont gardées)', action: () => $('fichierPlan').click()},
-  {texte:'NON', style:'secondaire'}
-]);
-$('fichierPlan').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  try {
-    const blob = f.type === 'application/pdf' || /\.pdf$/i.test(f.name) ? await pdfVersImage(f) : await enJpeg(await versCanvas(f, 2400));
-    chantierCourant.planImage = blob; await sauverChantier(chantierCourant); ouvrirPlan();
-  } catch (err) { alert('Plan non chargé : ' + err.message); }
-};
-function majPuces(){
-  const c = chantierCourant, z = $('puces'); z.innerHTML = '';
-  const l = sondages(c);
-  if (!l.length){ const p = document.createElement('p'); p.textContent = 'Touchez + TARIÈRE ou + PÉNÉTRO pour créer une étiquette.'; z.appendChild(p); }
-  for (const s of l){
-    const b = document.createElement('button'), im = c.implantation[s];
-    b.className = 'puce' + (im ? (im.statut === 'non réalisé' ? ' nonfait' : im.statut === 'conforme' ? ' place' : ' deplace') : '') + (s === sondageChoisi ? ' choisi' : '');
-    b.textContent = s; b.onclick = () => { sondageChoisi = s; deplacement = null; majPuces(); };
-    z.appendChild(b);
-  }
-  const im = sondageChoisi && c.implantation[sondageChoisi], pose = im && im.x != null;
-  $('btnNonRealise').style.display = sondageChoisi ? 'block' : 'none';
-  $('btnDeplace').style.display = sondageChoisi && !(im && im.statut === 'ajouté') ? 'block' : 'none';
-  $('btnDeplace').textContent = sondageChoisi + ' A ÉTÉ DÉPLACÉ';
-  $('btnRetirer').style.display = im ? 'block' : 'none';
-  $('btnRetirer').textContent = 'RETIRER ' + sondageChoisi + ' DU PLAN';
-  $('planAide').textContent = sondageChoisi && !pose
-    ? 'Touchez le plan à côté du point ' + sondageChoisi + ' pour y poser son étiquette.'
-    : 'Glisser une étiquette : la déplacer. Pincer une étiquette : la grossir ou la réduire. Ailleurs : glisser pour se déplacer, pincer pour zoomer.';
-}
-function etiquette(ctx, s, tx, ty, r, couleur){
-  ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; ctx.textBaseline = 'middle';
-  const w = ctx.measureText(s).width;
-  ctx.fillStyle = '#fff'; ctx.fillRect(tx - 4, ty - r, w + 8, r * 2);
-  ctx.strokeStyle = couleur; ctx.lineWidth = Math.max(2, r / 5); ctx.strokeRect(tx - 4, ty - r, w + 8, r * 2);
-  ctx.fillStyle = couleur; ctx.fillText(s, tx, ty);
-}
-function symbole(ctx, s, x, y, r, couleurTexte){
-  ctx.lineWidth = r / 4;
-  if (typeSondage(s) === 'TR'){
-    ctx.fillStyle = '#ffd400'; ctx.strokeStyle = '#000';
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x - r * 1.5, y); ctx.lineTo(x + r * 1.5, y); ctx.moveTo(x, y - r * 1.5); ctx.lineTo(x, y + r * 1.5); ctx.stroke();
-  } else {
-    ctx.fillStyle = '#ffd400'; ctx.strokeStyle = '#000';
-    ctx.beginPath(); ctx.moveTo(x - r, y - r * .8); ctx.lineTo(x + r, y - r * .8); ctx.lineTo(x, y + r); ctx.closePath(); ctx.fill(); ctx.stroke();
-  }
-  ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; ctx.textBaseline = 'middle';
-  const w = ctx.measureText(s).width, tx = x + r * 1.8, ty = y - r * 1.4;
-  ctx.fillStyle = '#fff'; ctx.fillRect(tx - 4, ty - r, w + 8, r * 2);
-  ctx.strokeStyle = couleurTexte; ctx.lineWidth = 3; ctx.strokeRect(tx - 4, ty - r, w + 8, r * 2);
-  ctx.fillStyle = couleurTexte; ctx.fillText(s, tx, ty);
-}
-function couleurStatut(im){ return im.statut === 'déplacé' ? '#d9730d' : im.statut === 'ajouté' ? '#1565c0' : '#0d1b1e'; }
-function dessinerAnnotations(ctx, W){
-  const c = chantierCourant, r0 = Math.max(8, W / 90), ecran = ctx.canvas.id === 'canvasPlan';
-  for (const s of sondages(c)){
-    const im = c.implantation[s]; if (!im || im.x == null) continue;
-    const r = r0 * (im.taille || 1), px = im.x * W, py = im.y * (planImg.height * W / planImg.width);
-    if (im.statut !== 'conforme') symbole(ctx, s, px, py, r, couleurStatut(im));
-    else { ctx.font = 'bold ' + Math.round(r * 1.6) + 'px sans-serif'; etiquette(ctx, s, px - (ctx.measureText(s).width + 8) / 2 + 4, py, r, '#0d1b1e'); }
-    if (ecran && s === sondageChoisi){   // repère du sondage choisi (pas dans l'image envoyée)
-      ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = '#d9730d'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(px, py, r * 3.2, 0, 7); ctx.stroke(); ctx.restore();
+  if(e.t==="verbe"){
+    const two=!!e.a;
+    h+=`<div class="tbl"><table><thead><tr><th></th><th class="w">${two?"Ouest · ":""}présent</th><th class="w">${two?"Ouest · ":""}passé</th>${two?'<th class="a sep">Alger · présent</th><th class="a">Alger · passé</th>':""}</tr></thead><tbody>`;
+    P.forEach((p,i)=>{
+      h+=`<tr><td>${p} <small>(${PFR[i]})</small></td><td>${esc(e.w.pr[i])}</td><td>${esc(e.w.pa[i])}</td>${two?`<td class="sep">${esc(e.a.pr[i])}</td><td>${esc(e.a.pa[i])}</td>`:""}</tr>`;
+    });
+    h+=`</tbody></table></div>`;
+    if(!two)h+=`<p class="note">Même forme dans l'Ouest et à Alger.</p>`;
+    if(!e.noimp){
+      const iw=imp(e.w.pr),ia=two?imp(e.a.pr):null;
+      h+=`<p class="sec">Imparfait <small>(kan + présent : j'écrivais, je faisais…)</small></p><div class="tbl"><table class="narrow"><thead><tr><th></th><th class="w">${two?"Ouest":"Imparfait"}</th>${two?'<th class="a sep">Alger / Est</th>':""}</tr></thead><tbody>`;
+      P.forEach((p,i)=>{h+=`<tr><td>${p} <small>(${PFR[i]})</small></td><td>${esc(iw[i])}</td>${two?`<td class="sep">${esc(ia[i])}</td>`:""}</tr>`});
+      h+=`</tbody></table></div>`;
+    }
+    if(e.pact||e.ppas||e.pdoute){
+      const f=a=>a?`${esc(a[0])} · ${esc(a[1])} · ${esc(a[2])}`:"—";
+      h+=`<p class="sec">Participes <small>(masculin · féminin · pluriel)</small></p><dl class="forms"><dt>Actif</dt><dd>${f(e.pact)}</dd><dt>Passif</dt><dd>${f(e.ppas)}</dd></dl>`;
+      if(!e.ppas&&e.pact)h+=`<p class="note">Pas de participe passif : le verbe n'a pas de complément d'objet.</p>`;
+      if(e.pdoute)h+=`<p class="note"><span class="doubt">À vérifier :</span> participes incertains ou peu employés.</p>`;
     }
   }
+  if(e.d)h+=`<p class="note"><span class="doubt">À vérifier :</span> forme peu employée, à confirmer.</p>`;
+  if(e.n)h+=`<p class="note">${esc(e.n)}</p>`;
+  const subj=encodeURIComponent("Dictionnaire darija : "+e.fr);
+  const bod=encodeURIComponent("Mot : "+e.fr+" ("+head(e)+")\n\nMa remarque : ");
+  h+=`<a class="report" href="mailto:${MAIL}?subject=${subj}&body=${bod}">Signaler une erreur</a>`;
+  return h;
 }
-function dessinerPlan(){
-  const z = $('zonePlan'), cv = $('canvasPlan');
-  const largeur = (z.clientWidth || 360) * zoom, dpr = window.devicePixelRatio || 1;
-  const h = largeur * planImg.height / planImg.width;
-  cv.style.width = largeur + 'px'; cv.style.height = h + 'px';
-  cv.width = Math.round(largeur * dpr); cv.height = Math.round(h * dpr);
-  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
-  ctx.drawImage(planImg, 0, 0, largeur, h);
-  dessinerAnnotations(ctx, largeur);
+function render(){
+  const raw=document.getElementById("q").value.replace(/[\s.]/g,"");
+  const q=norm(document.getElementById("q").value);
+  const terms=q?q.split(" "):[];
+  const res=D.filter(e=>(type==="tout"||e.t===type)&&terms.every(t=>e.k.includes(t)))
+    .sort((a,b)=>a.fr.localeCompare(b.fr,"fr"));
+  const open=terms.length>0&&res.length<=3;
+  let conv="";
+  if(/^\d{1,12}$/.test(raw)){const n=Number(raw);conv=`<div class="entry conv"><div class="body" style="padding-top:12px"><span class="type">Convertisseur</span><span class="fr">${n.toLocaleString("fr-FR")}</span><span class="dz">${esc(toDarija(n))}</span></div></div>`}
+  document.getElementById("list").innerHTML=conv+(res.length?res.map(e=>
+    `<details class="entry"${open?" open":""}><summary><span class="fr">${esc(e.fr)}</span><span class="type">${esc(e.t)}</span><span class="dz">${esc(head(e))}</span></summary><div class="body">${body(e)}</div></details>`
+  ).join(""):`<p class="empty">Aucun mot trouvé pour cette recherche.</p>`);
+  document.getElementById("count").textContent=`${res.length} mot${res.length>1?"s":""} sur ${D.length}`;
 }
-$('btnZoomPlus').onclick = () => { zoom = Math.min(4, zoom * 1.5); dessinerPlan(); };
-$('btnZoomMoins').onclick = () => { zoom = Math.max(1, zoom / 1.5); dessinerPlan(); };
-// ---- Gestes tactiles sur le plan ----
-// 1 doigt sur une étiquette : la déplacer · 2 doigts sur une étiquette : la grossir / réduire
-// 1 doigt ailleurs : faire défiler le plan · 2 doigts ailleurs : zoomer le plan · toucher simple : poser / choisir
-function pointPlan(e){ const rc = $('canvasPlan').getBoundingClientRect(); return {x: (e.clientX - rc.left) / rc.width, y: (e.clientY - rc.top) / rc.height, W: rc.width, H: rc.height}; }
-function etiquetteSous(p){   // étiquette la plus proche du doigt
-  const c = chantierCourant; let best = null, bd = 1e9;
-  for (const s of sondages(c)){
-    const im = c.implantation[s]; if (!im || im.x == null) continue;
-    const d = Math.hypot((im.x - p.x) * p.W, (im.y - p.y) * p.H), lim = Math.max(8, p.W / 90) * (im.taille || 1) * 2.5 + 6;
-    if (d < lim && d < bd){ bd = d; best = s; }
-  }
-  return best;
-}
-const cvPlan = $('canvasPlan'), doigts = new Map();
-let geste = null, dessinPrevu = false;
-function redessiner(){ if (dessinPrevu) return; dessinPrevu = true; requestAnimationFrame(() => { dessinPrevu = false; dessinerPlan(); }); }
-const ecart = () => { const [a, b] = [...doigts.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
-cvPlan.addEventListener('pointerdown', e => {
-  e.preventDefault(); cvPlan.setPointerCapture(e.pointerId);
-  doigts.set(e.pointerId, {x: e.clientX, y: e.clientY});
-  if (doigts.size === 1){
-    const p = pointPlan(e), s = deplacement ? null : etiquetteSous(p), im = s && chantierCourant.implantation[s], z = $('zonePlan');   // nouvelle position en attente : le toucher pose, il ne sélectionne pas
-    geste = {type: s ? 'etiquette' : 'plan', s, x0: e.clientX, y0: e.clientY, ix: im ? im.x : 0, iy: im ? im.y : 0,
-             sl: z.scrollLeft, st: z.scrollTop, bouge: false, p};
-    if (s && sondageChoisi !== s){ sondageChoisi = s; majPuces(); redessiner(); }
-  } else if (doigts.size === 2 && geste){
-    geste.bouge = true; geste.d0 = ecart();
-    if (geste.type === 'etiquette'){ geste.type = 'tailleEtiquette'; geste.t0 = chantierCourant.implantation[geste.s].taille || 1; }
-    else { geste.type = 'zoomPlan'; geste.z0 = zoom; }
-  }
+const chips=document.getElementById("chips");
+TYPES.forEach(t=>{
+  const b=document.createElement("button");
+  b.className="chip";b.type="button";b.id="chip-"+t.replace(" ","-");
+  b.textContent=LAB[t];
+  b.setAttribute("aria-pressed",t===type);
+  b.onclick=()=>{type=t;chips.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c===b));render()};
+  chips.appendChild(b);
 });
-cvPlan.addEventListener('pointermove', e => {
-  if (!doigts.has(e.pointerId) || !geste) return;
-  doigts.set(e.pointerId, {x: e.clientX, y: e.clientY});
-  const dx = e.clientX - geste.x0, dy = e.clientY - geste.y0;
-  if (Math.hypot(dx, dy) > 8) geste.bouge = true;
-  if (!geste.bouge) return;
-  const rc = cvPlan.getBoundingClientRect();
-  if (geste.type === 'etiquette' && doigts.size === 1){
-    const im = chantierCourant.implantation[geste.s];
-    im.x = Math.min(1, Math.max(0, geste.ix + dx / rc.width)); im.y = Math.min(1, Math.max(0, geste.iy + dy / rc.height)); redessiner();
-  } else if (geste.type === 'plan' && doigts.size === 1){
-    const z = $('zonePlan'); z.scrollLeft = geste.sl - dx; z.scrollTop = geste.st - dy;
-  } else if (geste.type === 'tailleEtiquette' && doigts.size === 2){
-    chantierCourant.implantation[geste.s].taille = Math.min(5, Math.max(0.4, geste.t0 * ecart() / geste.d0)); redessiner();
-  } else if (geste.type === 'zoomPlan' && doigts.size === 2){
-    zoom = Math.min(5, Math.max(1, geste.z0 * ecart() / geste.d0)); redessiner();
+document.getElementById("q").addEventListener("input",render);
+render();
+const COURSE=[{"k": "nom", "dz": "7adaf", "fr": "Objectif (m)", "c": ["c1"]}, {"k": "adj", "dz": "3a9al", "fr": "Gentil", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Tasskon / Tasskoni/ Taskonou", "fr": "Tu habite/ (f)/pl", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Win", "fr": "Où", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Bessa7", "fr": "Mais", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Salam, n9adam nafsi", "fr": "Bonjour, je me présente", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Lyom", "fr": "Aujourd'hui", "c": ["c1"]}, {"k": "adj", "dz": "3a9la", "fr": "Gentille", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Na5dam", "fr": "Travailler", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Ta3", "fr": "De", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Amma", "fr": "Mais (tn)", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ana ismi", "fr": "Je m'appelle", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Jinssya", "fr": "Nationalité (f)", "c": ["c1"]}, {"k": "adj", "dz": "3a9lin", "fr": "Gentils", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Na9ra", "fr": "étudier", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Bal", "fr": "Avec (qqchose)", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Had", "fr": "Ce/ceci/cette/ceux", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Win taskoun ?", "fr": "Où habite-tu?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "S7abi", "fr": "Mes amis", "c": ["c1"]}, {"k": "adj", "dz": "Mli7", "fr": "Bon", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nal3ab", "fr": "Jouer", "c": ["c1", "c10"]}, {"k": "conj", "dz": "M3a", "fr": "Avec (qqun)", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Hada", "fr": "Ce", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Kissammok ? Wash Ismek ?", "fr": "Comment t'appelle-tu ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Sa7bi", "fr": "Mon ami", "c": ["c1"]}, {"k": "adj", "dz": "Mli7a", "fr": "Bonne", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nro7", "fr": "Partir", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Fi", "fr": "En, Au, à", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Hadak", "fr": "Celui-là-bas", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ana zadit", "fr": "je suis né", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Sa7bati", "fr": "Mon amie", "c": ["c1"]}, {"k": "adj", "dz": "Mla7", "fr": "Bons", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "N7ab", "fr": "Aimer", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Man", "fr": "De, depuis", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Hadi", "fr": "Cette", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ana fi 3omri... (âge)", "fr": "J'ai .. (âge)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "S7abati", "fr": "Mes amies", "c": ["c1"]}, {"k": "adj", "dz": "Chbab", "fr": "Beau", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nnod", "fr": "Se réveiller", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Ayna", "fr": "Où (ar)", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Hadik", "fr": "Cette-là-bas", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Metcharfin", "fr": "Enchanté", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Dar", "fr": "Maison (m)", "c": ["c1"]}, {"k": "adj", "dz": "Chaba", "fr": "Belle", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nji", "fr": "Venir", "c": ["c1", "c10"]}, {"k": "conj", "dz": "w/ ow", "fr": "Et", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Hadou", "fr": "Ces", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ana far7an(a) bhad li9a2a", "fr": "Je suis heureux(se) de cette rencontre", "c": ["c1", "c10"]}, {"k": "nom", "dz": "O5ti", "fr": "Ma sœur (f)", "c": ["c1"]}, {"k": "adj", "dz": "Chbin", "fr": "Beaux", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Ndir", "fr": "Faire", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Bach", "fr": "Pour", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Hadouk", "fr": "Ceux-là-bas", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "T hala fi Ro7ek", "fr": "Prend soin de toi (m)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "3a2ila", "fr": "Famille (f)", "c": ["c1"]}, {"k": "adj", "dz": "Mazyan", "fr": "Beau (tn)", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "3andi", "fr": "Avoir", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Tani/Thani", "fr": "Aussi", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Li anou", "fr": "Parce que", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "T hali fi ro7ek", "fr": "Prend soin de toi (f)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Sayyara", "fr": "Voiture (f)", "c": ["c1"]}, {"k": "adj", "dz": "3ayan", "fr": "Fatigué", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Rani", "fr": "être", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Ida", "fr": "Si", "c": ["c1", "c10"]}, {"k": "prep", "dz": "3ala 5atr", "fr": "Parce que (tn)", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "T halou fi ro7kom", "fr": "Prenez soin de vous (pl)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Machina", "fr": "Train", "c": ["c1"]}, {"k": "adj", "dz": "3ayana", "fr": "Fatiguée", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nsakkar", "fr": "Fermer (tn)", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Morr", "fr": "Après", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Hnak", "fr": "Là-bas", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Madhabya", "fr": "Je voudrait", "c": ["c1", "c10"]}, {"k": "nom", "dz": "9a6/96o6", "fr": "Chat(s)", "c": ["c1"]}, {"k": "adj", "dz": "3ayanin", "fr": "Fatigués", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nsafar", "fr": "Voyager", "c": ["c1", "c10"]}, {"k": "conj", "dz": "9bal", "fr": "Avant", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Hna", "fr": "Ici", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Lazam", "fr": "Il faut", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Tabi3a", "fr": "Nature", "c": ["c1"]}, {"k": "adj", "dz": "4aya", "fr": "Bien", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nachri", "fr": "Acheter", "c": ["c1", "c10"]}, {"k": "conj", "dz": "Wah/Ih/An3am", "fr": "Oui", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Yamin", "fr": "Droite", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "5assni", "fr": "J'ai besoin", "c": ["c1", "c10"]}, {"k": "nom", "dz": "6ayyara", "fr": "Avion (f)", "c": ["c1"]}, {"k": "adj", "dz": "Sahal", "fr": "Facile", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Na9dar", "fr": "Pouvoir", "c": ["c1", "c10"]}, {"k": "conj", "dz": "La", "fr": "Non", "c": ["c1", "c10"]}, {"k": "prep", "dz": "Wa9ila", "fr": "Peut-être", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "9bal", "fr": "Avant que", "c": ["c1", "c10"]}, {"k": "nom", "dz": "War9a", "fr": "Feuille (f)", "c": ["c1"]}, {"k": "adj", "dz": "Sahla", "fr": "Facile (f)", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Natmacha", "fr": "Marcher", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Arwa7", "fr": "Viens (impératif)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Sayyid", "fr": "Monsieur (m)", "c": ["c1"]}, {"k": "adj", "dz": "Sahlin", "fr": "Faciles", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nbala3", "fr": "Fermer", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "5ir", "fr": "Mieux", "c": ["c1", "c10"]}, {"k": "nom", "dz": "7anout", "fr": "Magasin (m)", "c": ["c1"]}, {"k": "adj", "dz": "Wa3ar", "fr": "Difficile", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "N7al", "fr": "Ouvrir", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ma3lish", "fr": "C'est pas grave", "c": ["c1", "c10"]}, {"k": "nom", "dz": "9issa", "fr": "Conte/histoire (f)", "c": ["c1"]}, {"k": "adj", "dz": "Wa3ra", "fr": "Difficile (f)", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nasbar", "fr": "Patienter", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Fi ra7ba", "fr": "Ensemble", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Dourous", "fr": "Cours (pl)", "c": ["c1"]}, {"k": "adj", "dz": "Wa3rin", "fr": "Difficiles", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "N5ali", "fr": "Laisser", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rani", "fr": "Je suis en train de …", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Bint", "fr": "Fille (f)", "c": ["c1", "c10"]}, {"k": "adj", "dz": "S3ib", "fr": "Difficile 2", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Na3raf", "fr": "Connaître", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Sba7l5ir", "fr": "Bonne matinée", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Wald", "fr": "Garçon (m)", "c": ["c1", "c10"]}, {"k": "adj", "dz": "S3iba", "fr": "Difficile 2 (f)", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Naktab", "fr": "écrire", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Bsal5ir", "fr": "Bonne après-midi", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Zarbia", "fr": "Tapis (f)", "c": ["c1"]}, {"k": "adj", "dz": "S3ab", "fr": "Difficiles 2", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Namchi", "fr": "Partir", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Laila sa3ida", "fr": "Bonne nuit", "c": ["c1", "c10"]}, {"k": "nom", "dz": "7aja", "fr": "Chose", "c": ["c1"]}, {"k": "adj", "dz": "Twil", "fr": "Long", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "N7at", "fr": "Poser", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Bslama", "fr": "Au-revoir", "c": ["c1", "c10"]}, {"k": "nom", "dz": "7wayj", "fr": "Choses (pl)", "c": ["c1"]}, {"k": "adj", "dz": "Twila", "fr": "Longue", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nsana", "fr": "Patienter", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Nchofek 9rib", "fr": "On se voit bientôt", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Babor", "fr": "Bateau (m)", "c": ["c1"]}, {"k": "adj", "dz": "S4ir", "fr": "Petit", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nkoun", "fr": "Je serais", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Nchofek mba3d", "fr": "On se voit après", "c": ["c1", "c10"]}, {"k": "nom", "dz": "3ayn", "fr": "Oeil (f)", "c": ["c1"]}, {"k": "adj", "dz": "S4ira", "fr": "Petite", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "N7awol", "fr": "Essayer", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Nchofek 4odwa", "fr": "On se voit demain", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Rajl", "fr": "Pied (f)", "c": ["c1"]}, {"k": "adj", "dz": "4ali", "fr": "Cher", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Ndawi", "fr": "Soigner", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Kirak ?", "fr": "Comment ça va ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Yad", "fr": "Main (f)", "c": ["c1"]}, {"k": "adj", "dz": "4alia", "fr": "Chère", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nsowr", "fr": "Photographier", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rani laa bas", "fr": "je vais bien", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Wadn", "fr": "Oreille (f)", "c": ["c1"]}, {"k": "adj", "dz": "Bnin", "fr": "Délicieux", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nasma3", "fr": "écouter", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Chokran", "fr": "Merci", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Sa3a", "fr": "Montre (f)", "c": ["c1"]}, {"k": "adj", "dz": "Bnina", "fr": "Délicieuse", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nadi", "fr": "Prendre", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Sa7it", "fr": "Merci", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Drari", "fr": "Enfants", "c": ["c1"]}, {"k": "adj", "dz": "M9ala9", "fr": "Impatient", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Na7i", "fr": "Enlever", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Sa7ito", "fr": "Merci (pl)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Sal3a", "fr": "Marchandise (f)", "c": ["c1"]}, {"k": "adj", "dz": "M9ala9a", "fr": "Impatiente", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nach3al", "fr": "Allumer", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Fo9 rass wl 3ayn", "fr": "Avec grand plaisir", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Yima", "fr": "Maman (f)", "c": ["c1"]}, {"k": "adj", "dz": "9dim", "fr": "Ancien", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nnagedi", "fr": "Allumer (2)", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Twa7ashtek", "fr": "Tu m'a manqué", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Beba", "fr": "Papa (m)", "c": ["c1"]}, {"k": "adj", "dz": "9dima", "fr": "Ancienne", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nal9a", "fr": "Trouver", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ana tani/thani", "fr": "Moi aussi", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Chajra", "fr": "Arbre (f)", "c": ["c1"]}, {"k": "adj", "dz": "9dam", "fr": "Anciens", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nmad", "fr": "Donner", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Wesh rak dir ?", "fr": "Qu'est-ce que tu fais ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Banka", "fr": "Banque (f)", "c": ["c1"]}, {"k": "adj", "dz": "Jdid", "fr": "Nouveau", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Na3fass", "fr": "Appuyer sur qqchose", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Wesh raki diri ?", "fr": "Qu'est ce que tu fait ? (f)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Braya", "fr": "Lettre (f)", "c": ["c1"]}, {"k": "adj", "dz": "Jdida", "fr": "Nouvelle", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "N2assas", "fr": "Former/Créer", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Wesh rakom dirou ?", "fr": "Qu'est ce que vous faites ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Makla", "fr": "Nourriture (f)", "c": ["c1"]}, {"k": "adj", "dz": "Jdod", "fr": "Nouveaux", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "N2aked", "fr": "S'assurer/ Affirmer", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rak mash4ol ?", "fr": "Tu es occupé ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Ljomal", "fr": "Les phrases", "c": ["c1"]}, {"k": "adj", "dz": "Safi", "fr": "Limpide/clair/hônnete", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Natkawen", "fr": "Se former/ se composer", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Raki Mash4ola ?", "fr": "Tu es occupée ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Moudir", "fr": "Directeur (m)", "c": ["c1"]}, {"k": "adj", "dz": "Safia", "fr": "Limpide/claire/hônnete", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nalmas", "fr": "Toucher", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rakom Mash4olin ?", "fr": "Vous êtes occupés ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Ta9a", "fr": "Fenêtre (f)", "c": ["c1"]}, {"k": "adj", "dz": "Safiyin", "fr": "Limpides/clairs/honnêtes", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Natmana", "fr": "Esperer", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rani Mash4ol", "fr": "Je suis occupé", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Natija", "fr": "Résultat (f)", "c": ["c1"]}, {"k": "adj", "dz": "Zin", "fr": "Le beau", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Ntaba3", "fr": "Suivre", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rani Mash4ola", "fr": "Je suis occupé (f)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Baladya", "fr": "Mairie (f)", "c": ["c1"]}, {"k": "adj", "dz": "Zina", "fr": "La belle", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Nawssi", "fr": "Conseiller", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rana mash4olin", "fr": "Nous sommes occupés", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Mashrou3", "fr": "Projet (m)", "c": ["c1"]}, {"k": "adj", "dz": "Zinin", "fr": "Les beaux", "c": ["c1", "c10"]}, {"k": "verbe", "dz": "Narmi", "fr": "Jeter", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rak 7or ?", "fr": "Tu es libre ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Bal", "fr": "Pensée (m)", "c": ["c1"]}, {"k": "verbe", "dz": "Nansa", "fr": "Oublier", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Raki 7orra ?", "fr": "Tu es libre (f) ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Tyab", "fr": "Cuisine (nourriture) (m)", "c": ["c1"]}, {"k": "verbe", "dz": "Nwada3", "fr": "Faire ses adieux", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rakom 7orrin ?", "fr": "Vous êtes libres ?", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Berd", "fr": "Froid (m)", "c": ["c1"]}, {"k": "verbe", "dz": "N9ol", "fr": "Dire", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rani 7orr", "fr": "Je suis libre", "c": ["c1", "c10"]}, {"k": "nom", "dz": "S5ana", "fr": "Chaleur (f)", "c": ["c1"]}, {"k": "verbe", "dz": "N7awos", "fr": "Se balader/chercher", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Rani 7orra", "fr": "Je suis libre (f)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Sahm", "fr": "Flèche (m)", "c": ["c1"]}, {"k": "phrase", "dz": "Rana 7orrin", "fr": "Nous sommes libres", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Amthila", "fr": "Exemples", "c": ["c1"]}, {"k": "phrase", "dz": "Rani ji3an", "fr": "J'ai faim", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Moul", "fr": "Propriétaire", "c": ["c1"]}, {"k": "phrase", "dz": "N7ab nzid", "fr": "Je veux ajouter", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Moulat", "fr": "Propriétaire (f)", "c": ["c1"]}, {"k": "phrase", "dz": "N7ab 4i shoya", "fr": "Je veux juste un peu", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Mwalin", "fr": "Propriétaires", "c": ["c1"]}, {"k": "phrase", "dz": "Barakat", "fr": "ça suffit (quantité)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Fir9a", "fr": "Groupe", "c": ["c1"]}, {"k": "phrase", "dz": "Tbanli", "fr": "je pense que …", "c": ["c1", "c10"]}, {"k": "nom", "dz": "3alam", "fr": "Le monde/ savant (m)", "c": ["c1"]}, {"k": "phrase", "dz": "Hak", "fr": "Tiens", "c": ["c1", "c10"]}, {"k": "nom", "dz": "4onia", "fr": "Chanson (f)", "c": ["c1"]}, {"k": "phrase", "dz": "Haki", "fr": "Tiens (f)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Fenaan", "fr": "Artiste (m)", "c": ["c1"]}, {"k": "phrase", "dz": "Hako", "fr": "Tenez", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Al fan", "fr": "L'art (m)", "c": ["c1"]}, {"k": "phrase", "dz": "7ssabni", "fr": "J'ai pensé que …", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Dou9", "fr": "Goût", "c": ["c1"]}, {"k": "phrase", "dz": "Mo7al", "fr": "C'est Impossible (pour moi)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Hwa", "fr": "Air/passion", "c": ["c1"]}, {"k": "phrase", "dz": "5assa Biek", "fr": "Propre à toi", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Amwaj", "fr": "Vagues (m)", "c": ["c1"]}, {"k": "phrase", "dz": "5assa Bihom", "fr": "Propre à eux", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Ri7", "fr": "Vent (m)", "c": ["c1"]}, {"k": "phrase", "dz": "Matmani", "fr": "Esperons", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Bhar", "fr": "Mer", "c": ["c1"]}, {"k": "phrase", "dz": "Natmana tkon laa bas", "fr": "J'espère que tu va bien", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Al7ob", "fr": "L'amour", "c": ["c1"]}, {"k": "phrase", "dz": "Natmani tkon laa bas", "fr": "J'espère que tu va bien (f)", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Riya7", "fr": "Les vents", "c": ["c1"]}, {"k": "phrase", "dz": "N7awos 3liak", "fr": "Je te cherche", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ma dar fiya !", "fr": "Tu ne sais pas ce que tu m'a fais !", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ma darti fiya", "fr": "Tu ne sais pas ce que tu m'a fais ! (f)", "c": ["c1", "c10"]}, {"k": "phrase", "dz": "Ma dartou fiya !", "fr": "Vous ne savez pas ce que vous m'avez fait !", "c": ["c1", "c10"]}, {"k": "nom", "dz": "Lwaldin", "fr": "Les parents", "c": ["c10"]}, {"k": "nom", "dz": "Waldiya", "fr": "Mes parents", "c": ["c10"]}, {"k": "nom", "dz": "3am", "fr": "Oncle paternel", "c": ["c10"]}, {"k": "nom", "dz": "3ama", "fr": "Tante paternelle", "c": ["c10"]}, {"k": "nom", "dz": "3ami", "fr": "Mon oncle paternel", "c": ["c10"]}, {"k": "nom", "dz": "3amti", "fr": "Ma tante paternelle", "c": ["c10"]}, {"k": "nom", "dz": "3amtkom", "fr": "Votre tante paternelle", "c": ["c10"]}, {"k": "nom", "dz": "5al", "fr": "Oncle maternel", "c": ["c10"]}, {"k": "nom", "dz": "5ali", "fr": "Mon oncle maternel", "c": ["c10"]}, {"k": "nom", "dz": "5alti", "fr": "Ma tante maternelle", "c": ["c10"]}, {"k": "nom", "dz": "5altha", "fr": "Sa tante maternelle (f)", "c": ["c10"]}, {"k": "nom", "dz": "5altna", "fr": "Notre tante maternelle", "c": ["c10"]}, {"k": "nom", "dz": "Wald l3am", "fr": "Cousin paternel par le frère du père", "c": ["c10"]}, {"k": "nom", "dz": "Wald 3ami", "fr": "Mon cousin paternel par le frère du père", "c": ["c10"]}, {"k": "nom", "dz": "Wald 3amna", "fr": "Notre cousin paternel par le frère du père", "c": ["c10"]}, {"k": "nom", "dz": "Wald l3ama", "fr": "Cousin paternel par la soeur du père", "c": ["c10"]}, {"k": "prep", "dz": "3and", "fr": "Chez", "c": ["c10"]}, {"k": "nom", "dz": "Wald 3amthom", "fr": "Leur cousin paternel par la soeur du père", "c": ["c10"]}, {"k": "prep", "dz": "Kol", "fr": "Chaque", "c": ["c10"]}, {"k": "nom", "dz": "Bint l3am", "fr": "Cousine paternelle par le frère du père", "c": ["c10"]}, {"k": "prep", "dz": "Daymen", "fr": "Toujours", "c": ["c10"]}, {"k": "nom", "dz": "Bint 3amek", "fr": "Ta cousine paternelle par le frère du père", "c": ["c10"]}, {"k": "prep", "dz": "Dima", "fr": "Toujours (2)", "c": ["c10"]}, {"k": "nom", "dz": "Bintl3ama", "fr": "Cousine paternelle par la soeur du père", "c": ["c10"]}, {"k": "nom", "dz": "Bint 3amti", "fr": "Ma cousine par la soeur du père", "c": ["c10"]}, {"k": "nom", "dz": "Wald l5al", "fr": "Cousin maternel par le frère la mère", "c": ["c10"]}, {"k": "nom", "dz": "Wald 5alek", "fr": "Ton cousin maternel par le frère de la mère", "c": ["c10"]}, {"k": "nom", "dz": "Wald l5ala", "fr": "Cousin maternel par la soeur de la mère", "c": ["c10"]}, {"k": "nom", "dz": "Wald 5altek", "fr": "Ton cousin maternel par la soeur de la mère", "c": ["c10"]}, {"k": "nom", "dz": "Bint l5al", "fr": "Cousine maternelle par le frère de la mère", "c": ["c10"]}, {"k": "nom", "dz": "Bint 5alhom", "fr": "Leur cousine maternelle par le frère de la mère", "c": ["c10"]}, {"k": "nom", "dz": "Bint l5ala", "fr": "Cousine maternelle par la soeur de la mère", "c": ["c10"]}, {"k": "nom", "dz": "Bint 5altha", "fr": "Sa (f) cousine maternelle par la soeur de sa mère", "c": ["c10"]}, {"k": "nom", "dz": "Rajli", "fr": "époux", "c": ["c10"]}, {"k": "nom", "dz": "Zawji", "fr": "époux (2)", "c": ["c10"]}, {"k": "nom", "dz": "Rajlek", "fr": "Ton époux", "c": ["c10"]}, {"k": "nom", "dz": "Rajlha", "fr": "Son époux", "c": ["c10"]}, {"k": "nom", "dz": "Zawjah", "fr": "Son époux (2)", "c": ["c10"]}, {"k": "nom", "dz": "Zawja", "fr": "épouse (2)", "c": ["c10"]}, {"k": "nom", "dz": "Mra", "fr": "épouse", "c": ["c10"]}, {"k": "nom", "dz": "Mrati", "fr": "Mon épouse", "c": ["c10"]}, {"k": "nom", "dz": "Mratah", "fr": "Son épouse", "c": ["c10"]}, {"k": "nom", "dz": "Jadi", "fr": "Mon gand père", "c": ["c10"]}, {"k": "nom", "dz": "Jadkom", "fr": "Votre grand père", "c": ["c10"]}, {"k": "nom", "dz": "Jadati", "fr": "Ma grand mère", "c": ["c10"]}, {"k": "nom", "dz": "Jada", "fr": "Grand mère", "c": ["c10"]}, {"k": "nom", "dz": "Waldha", "fr": "Son fils (f)", "c": ["c10"]}, {"k": "nom", "dz": "Bintah", "fr": "Sa fille", "c": ["c10"]}, {"k": "adj", "dz": "5awi", "fr": "Vide", "c": ["c10"]}, {"k": "nom", "dz": "Lab7ar", "fr": "La plage", "c": ["c10"]}, {"k": "adj", "dz": "5awiya", "fr": "Vide (f)", "c": ["c10"]}, {"k": "nom", "dz": "Dhaw", "fr": "Lumière (élec)", "c": ["c10"]}, {"k": "adj", "dz": "5awyin", "fr": "Vides", "c": ["c10"]}, {"k": "nom", "dz": "l5adma", "fr": "Le travail", "c": ["c10"]}, {"k": "nom", "dz": "7kaya", "fr": "Histoire (2)", "c": ["c10"]}, {"k": "verbe", "dz": "Ntarjam", "fr": "Traduire", "c": ["c10"]}, {"k": "verbe", "dz": "Na5roj", "fr": "Sortir", "c": ["c10"]}, {"k": "verbe", "dz": "Nad5ol", "fr": "Rentrer", "c": ["c10"]}, {"k": "verbe", "dz": "Na7ki", "fr": "Raconter", "c": ["c10"]}];
+/* ---------- JEU DE MÉMORISATION ---------- */
+const CATS={nom:"Noms",adj:"Adjectifs",verbe:"Verbes",conj:"Conjonctions",prep:"Prépositions, adverbes, pronoms",phrase:"Phrases types"};
+const DMAP={"verbe":"verbe","nom":"nom","adjectif":"adj","mot outil":"prep","expression":"phrase"};
+function dicoPool(){
+  return D.filter(e=>DMAP[e.t]).map(e=>({k:DMAP[e.t],fr:e.fr,dz:e.t==="verbe"?e.dz:e.t==="nom"?(e.s!=="—"?e.s:e.p):e.t==="adjectif"?e.m:e.v}));
+}
+/* Comparaison darija : écritures (5/kh, 4/gh, 9/q/g, ch/sh, th/t) et voyelles souples (o/ou/u, i/e, a/e, e facultatif) */
+function dzBase(s){
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/kh|5/g,"x").replace(/gh|4|8/g,"ɣ").replace(/sh|ch/g,"c").replace(/th/g,"t").replace(/dh/g,"d").replace(/6/g,"t")
+    .replace(/[qg]/g,"9").replace(/2/g,"").replace(/[^a-z0-9ɣ]/g,"")
+    .replace(/(.)\1+/g,"$1").replace(/ou|u/g,"o").replace(/(.)\1+/g,"$1");
+}
+function dzPattern(exp){
+  const k=dzBase(exp);let p="^e?";
+  for(const c of k){
+    if(c==="a")p+="[ae]";else if(c==="i")p+="[ie]";else if(c==="e"){p+="[aie]?";continue}
+    else p+=c.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    p+="e?";
   }
-});
-async function finDoigt(e){
-  if (!doigts.has(e.pointerId)) return;
-  doigts.delete(e.pointerId);
-  if (doigts.size || !geste) return;
-  const g = geste; geste = null;
-  if (g.type === 'etiquette' || g.type === 'tailleEtiquette'){
-    if (g.bouge){ await sauverChantier(chantierCourant); vibrer(); }
-    return;   // simple toucher sur une étiquette : elle est choisie
-  }
-  if (g.bouge || e.type === 'pointercancel') return;   // défilement / zoom du plan
-  toucherPlan(g.p);
+  return new RegExp(p+"$");
 }
-cvPlan.addEventListener('pointerup', finDoigt); cvPlan.addEventListener('pointercancel', finDoigt);
-function toucherPlan(p){
-  if (!sondageChoisi){ choisir('Choisissez d\'abord un sondage dans la liste sous le plan', [{texte:'OK', style:'secondaire'}]); return; }
-  const s = sondageChoisi;
-  if (deplacement && deplacement.s === s){ const d = deplacement; deplacement = null; poser(s, p.x, p.y, d.statut, d.raison); return; }
-  const avant = chantierCourant.implantation[s];
-  if (avant && avant.x != null && avant.statut !== 'conforme') poser(s, p.x, p.y, avant.statut, avant.raison);   // déplacé / ajouté : on garde son statut
-  else poser(s, p.x, p.y, 'conforme', '');
+function variants(s){
+  const out=[];
+  const v=[s.replace(/\([^)]*\)/g,""),s.replace(/[()]/g,"")];
+  v.forEach(x=>x.split(/[\/?!]| ou /).forEach(y=>{y=y.replace(/\.\.\.|…/g,"").trim();if(y)out.push(y)}));
+  return out;
 }
-$('btnRetirer').onclick = async () => {
-  delete chantierCourant.implantation[sondageChoisi]; await sauverChantier(chantierCourant); majPuces(); dessinerPlan();
-};
-let deplacement = null;   // {s, raison} : la prochaine touche sur le plan pose le nouveau point
-$('btnDeplace').onclick = () => {
-  const s = sondageChoisi; if (!s) return;
-  const attendre = rs => { deplacement = {s, raison: rs, statut: 'déplacé'};$('planAide').textContent = 'Touchez sur le plan la NOUVELLE position de ' + s + ' : un symbole et son étiquette y seront dessinés.'; };
-  choisir(s + ' déplacé : pourquoi ?', [
-    ...RAISONS.map(rs => ({texte:rs.toUpperCase(), style:'secondaire', action: () => attendre(rs)})),
-    {champ:'Autre raison (dictée possible)'},
-    {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => attendre(($('champLibre').value || 'autre').trim())},
-    {texte:'ANNULER', style:'discret'}
-  ]);
-};
-async function poser(s, x, y, statut, raison){
-  const avant = chantierCourant.implantation[s];
-  chantierCourant.implantation[s] = {x, y, statut, raison, taille: (avant && avant.taille) || 1};
-  await sauverChantier(chantierCourant); vibrer();
-  majPuces(); dessinerPlan();   // le sondage reste choisi : pas de passage automatique au suivant
+function dzOk(typed,exp){
+  const t=dzBase(typed);if(!t)return false;
+  return variants(exp).some(v=>dzPattern(v).test(t));
 }
-async function nouveauSondage(type){
-  const c = chantierCourant, champ = type === 'TR' ? 'tarieres' : 'penetros';
-  c[champ]++; await sauverChantier(c); return type + c[champ];
+function frBase(s){
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\([^)]*\)/g,"")
+    .replace(/['’-]/g," ").replace(/[?!.…,;:]/g," ").replace(/\b(le|la|les|l|un|une)\b/g," ")
+    .replace(/\s+\d+\s*$/,"").replace(/\s+/g," ").trim();
 }
-$('btnPlanTR').onclick = async () => { sondageChoisi = await nouveauSondage('TR'); deplacement = null; majPuces(); };
-$('btnPlanP').onclick = async () => { sondageChoisi = await nouveauSondage('P'); deplacement = null; majPuces(); };
-$('btnSupp').onclick = () => {
-  const raisons = ['Demande du client', 'Complément après refus', 'Terrain hétérogène'];
-  const c = chantierCourant;
-  const proposition = type => { const base = type + Math.max(1, type === 'TR' ? c.tarieres : c.penetros), l = sondages(c);
-    for (const lettre of 'bcdefghijk') if (!l.includes(base + lettre)) return base + lettre; return base + 'x'; };
-  const creer = async (type, rs) => {
-    const s = ($('champNom').value || '').replace(/[^A-Za-z0-9\-]/g, '');
-    if (!s){ alert('Donnez un nom au sondage (par exemple P1b).'); return; }
-    if (sondages(c).includes(s) || FIXES.some(f => f.code === s)){ alert('Le nom ' + s + ' existe déjà.'); return; }
-    c.extras = c.extras || []; c.extras.push({nom: s, type}); await sauverChantier(c);
-    sondageChoisi = s; deplacement = {s, raison: rs, statut: 'ajouté'}; majPuces(); dessinerPlan();
-    $('planAide').textContent = 'Touchez sur le plan la position du sondage supplémentaire ' + s + ' : un symbole et son étiquette y seront dessinés.';
-  };
-  const suite = type => choisir('Nom et raison du sondage supplémentaire', [
-    {champ: 'Nom du sondage (ex. P1b)', id: 'champNom', valeur: proposition(type)},
-    ...raisons.map(rs => ({texte: rs.toUpperCase(), style:'secondaire', action: () => creer(type, rs)})),
-    {champ:'Autre raison (dictée possible)'},
-    {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => creer(type, ($('champLibre').value || 'autre').trim())},
-    {texte:'ANNULER', style:'discret'}
-  ]);
-  choisir('Sondage supplémentaire : quel type ?', [
-    {texte:'TARIÈRE', action: () => suite('TR')}, {texte:'PÉNÉTRO', action: () => suite('P')}, {texte:'ANNULER', style:'discret'}
-  ]);
-};
-$('btnNonRealise').onclick = () => {
-  const s = sondageChoisi;
-  choisir(s + ' non réalisé : pourquoi ?', [
-    ...RAISONS.filter(r => !r.startsWith('Refus')).concat(['Refus dès la surface']).map(rs => ({texte:rs.toUpperCase(), style:'secondaire', action: () => poser(s, null, null, 'non réalisé', rs)})),
-    {champ:'Autre raison (dictée possible)'},
-    {texte:'AUTRE RAISON (CI-DESSUS)', style:'secondaire', action: () => poser(s, null, null, 'non réalisé', ($('champLibre').value || 'autre').trim())},
-    {texte:'ANNULER', style:'discret'}
-  ]);
-};
-$('btnPlanRetour').onclick = () => ouvrirChantier(chantierCourant);
-// Image finale du plan annoté, avec le tableau des écarts en dessous
-async function planAnnote(){
-  const c = chantierCourant; if (!c.planImage) return null;
-  planImg = await createImageBitmap(c.planImage);
-  const W = planImg.width, H = planImg.height, l = sondages(c);
-  const lignes = l.map(s => { const im = c.implantation[s]; return s + ' : ' + (!im ? 'position non indiquée' : im.statut === 'conforme' ? 'conforme au plan' : im.statut === 'ajouté' ? 'sondage supplémentaire (' + im.raison + ')' : im.statut + ' (' + im.raison + ')'); });
-  const pas = Math.round(W / 45), bas = pas * (lignes.length + 2);
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = H + bas;
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H + bas);
-  ctx.drawImage(planImg, 0, 0); dessinerAnnotations(ctx, W);
-  ctx.fillStyle = '#000'; ctx.font = 'bold ' + Math.round(pas * .7) + 'px sans-serif'; ctx.textBaseline = 'middle';
-  ctx.fillText('Implantation réelle - ' + c.nom + ' - ' + dateFR(c.date), pas, H + pas);
-  ctx.font = Math.round(pas * .6) + 'px sans-serif';
-  lignes.forEach((t, i) => { const im = c.implantation[l[i]]; ctx.fillStyle = !im ? '#b3261e' : im.statut === 'conforme' ? '#000' : im.statut === 'déplacé' ? '#d9730d' : im.statut === 'ajouté' ? '#1565c0' : '#b3261e'; ctx.fillText(t, pas, H + pas * (i + 2)); });
-  return new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.9));
+function frOk(typed,exp){
+  const t=frBase(typed);if(!t)return false;
+  return exp.split(/[\/,;]/).concat([exp]).some(a=>frBase(a)===t);
 }
 
-/* ---------- Archive zip ---------- */
-const TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-function crc32(o){ let c = 0xFFFFFFFF; for (let i = 0; i < o.length; i++) c = TABLE[(c ^ o[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
-async function fabriquerZip(entrees, progres, ecartes){
-  const enc = new TextEncoder(), morceaux = [], central = []; let pos = 0, k = 0;
-  for (const e of entrees){
-    k++; if (progres) progres(k, entrees.length);
-    await new Promise(ok => setTimeout(ok, 0));   // laisse l'écran se mettre à jour
-    let crc;
-    try { crc = crc32(new Uint8Array(await e.blob.arrayBuffer())); }
-    catch (err) { if (ecartes) ecartes.push(e.chemin.split('/').pop()); continue; }   // fichier illisible : écarté, l'envoi continue
-    const nom = enc.encode(e.chemin), data = {length: e.blob.size}, d = e.date;
-    const heure = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
-    const jour = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
-    const loc = new DataView(new ArrayBuffer(30));
-    loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true); loc.setUint16(6, 0x0800, true);
-    loc.setUint16(10, heure, true); loc.setUint16(12, jour, true); loc.setUint32(14, crc, true);
-    loc.setUint32(18, data.length, true); loc.setUint32(22, data.length, true); loc.setUint16(26, nom.length, true);
-    morceaux.push(loc, nom, e.blob);   // le contenu reste un Blob : pas de copie en mémoire
-    const cen = new DataView(new ArrayBuffer(46));
-    cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
-    cen.setUint16(12, heure, true); cen.setUint16(14, jour, true); cen.setUint32(16, crc, true);
-    cen.setUint32(20, data.length, true); cen.setUint32(24, data.length, true); cen.setUint16(28, nom.length, true);
-    cen.setUint32(42, pos, true);
-    central.push(cen, nom);
-    pos += 30 + nom.length + data.length;
+const G={pool:[],qs:[],i:0,good:0,bad:0,cur:null,done:false};
+const $=id=>document.getElementById(id);
+function loadBest(){try{return JSON.parse(localStorage.getItem("darija-best")||"null")}catch(e){return null}}
+function saveBest(v){try{localStorage.setItem("darija-best",JSON.stringify(v))}catch(e){}}
+function selectedCats(){return [...document.querySelectorAll("#g-cats input:checked")].map(i=>i.value)}
+function buildPool(){
+  const src=$("g-src").value;
+  let pool=src==="dico"?dicoPool():COURSE.filter(e=>src==="tout"||e.c.includes(src));
+  const cats=selectedCats();
+  return pool.filter(e=>cats.includes(e.k));
+}
+function updateAvail(){
+  const n=buildPool().length;
+  $("g-avail").textContent=n?`${n} mots disponibles`:"Aucun mot pour ce choix : coche au moins une catégorie.";
+  $("g-start").disabled=!n;
+}
+function startGame(){
+  const pool=buildPool();if(!pool.length)return;
+  const n=Number($("g-n").value),dir=$("g-dir").value,qs=[];
+  let bag=[];
+  while(qs.length<n){
+    if(!bag.length)bag=pool.slice().sort(()=>Math.random()-.5);
+    const e=bag.pop();
+    const d=dir==="mix"?(Math.random()<.5?"fd":"df"):dir;
+    qs.push({e,d});
   }
-  const tailleCentral = central.reduce((s, x) => s + x.byteLength, 0);
-  const fin = new DataView(new ArrayBuffer(22));
-  const nb = central.length / 2;
-  fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, nb, true); fin.setUint16(10, nb, true);
-  fin.setUint32(12, tailleCentral, true); fin.setUint32(16, pos, true);
-  return new Blob([...morceaux, ...central, fin], {type:'application/zip'});
+  Object.assign(G,{qs,i:0,good:0,bad:0,done:false});
+  $("g-setup").hidden=true;$("g-end").hidden=true;$("g-play").hidden=false;
+  showQ();
 }
-
-/* ---------- Fin de chantier et envoi ---------- */
-let zipPret = null;
-function note(texte, ok){ const n = $('envNote'); n.textContent = texte; n.className = 'note' + (ok ? ' ok' : ''); }
-function nomDossier(c){ return c.nom + ' - chantier ' + dateCompacte(c.date); }
-async function preparer(progres){
-  const c = chantierCourant, toutes = (await photosDe(c.id)).sort((a, b) => a.nom.localeCompare(b.nom));
-  // une photo illisible (mémoire du téléphone abîmée) ne bloque jamais l'envoi : elle est écartée et signalée
-  const photos = [], illisibles = [];
-  for (const p of toutes){
-    try { if (!p.blob || !p.blob.size) throw 0; await p.blob.slice(0, 16).arrayBuffer(); photos.push(p); } catch (e) { illisibles.push(p.nom); }
-  }
-  const racine = nomDossier(c) + '/';
-  const fiche = {
-    chantier: c.nom, date_chantier: c.date.slice(0, 10), tarieres: c.tarieres, penetros: c.penetros,
-    implantation: sondages(c).map(s => { const im = c.implantation[s] || {}; return {sondage: s, statut: im.statut || 'non indiqué', raison: im.raison || '', x: im.x ?? null, y: im.y ?? null}; }),
-    lien_proposition_technique: c.lienPT || null, version_appli: VERSION,
-    photos: photos.map(p => ({fichier: p.nom, categorie: p.cat, dossier: infoCat(p.cat).dossier, heure: p.heure, profondeur_m: p.prof ?? null}))
-  };
-  const entrees = photos.map(p => ({chemin: racine + infoCat(p.cat).dossier + '/' + p.nom, blob: p.blob, date: new Date(p.heure)}));
-  let plan = null;
-  try { plan = await planAnnote(); } catch (e) { illisibles.push('plan d\'implantation'); }
-  if (plan) entrees.push({chemin: racine + 'Implantation/' + prefixe(c.nom) + '_PLAN_reel.jpg', blob: plan, date: new Date()});
-  entrees.push({chemin: racine + 'chantier.json', blob: new Blob([JSON.stringify(fiche, null, 2)], {type:'application/json'}), date: new Date()});
-  return {photos, illisibles, zip: new File([await fabriquerZip(entrees, progres, illisibles)], nomDossier(c) + '.zip', {type:'application/zip'})};
+function showQ(){
+  const q=G.qs[G.i];G.cur=q;
+  $("g-prog").textContent=`${G.i+1} / ${G.qs.length}`;
+  $("g-bar").style.width=(G.i/G.qs.length*100)+"%";
+  $("g-cat").textContent=CATS[q.e.k]+" · "+(q.d==="fd"?"Français → darija":"Darija → français");
+  $("g-prompt").textContent=q.d==="fd"?q.e.fr:q.e.dz;
+  $("g-ans").value="";$("g-ans").disabled=false;
+  $("g-ans").placeholder=q.d==="fd"?"Écris en darija":"Écris en français";
+  $("g-fb").hidden=true;$("g-check").hidden=false;$("g-next").hidden=true;$("g-over").hidden=true;
+  $("g-score").textContent=`${G.good} juste${G.good>1?"s":""} · ${G.bad} faux`;
+  $("g-ans").focus();
 }
-async function ouvrirEnvoi(){
-  const c = chantierCourant;
-  $('envNom').textContent = c.nom; note('Préparation du dossier…'); zipPret = null;
-  $('recap').innerHTML = ''; $('btnReessayer').style.display = 'none'; $('btnEnvoyer').disabled = true; montrer('envoi');
-  try {
-    zipPret = await preparer((k, n) => note('Préparation du dossier : ' + k + ' / ' + n + '…'));
-  } catch (e) {
-    note('La préparation a échoué (' + (e && e.message || e) + '). Touchez RÉESSAYER. Vos photos sont toujours dans le téléphone.');
-    $('btnReessayer').style.display = 'block'; return;
-  } finally { $('btnEnvoyer').disabled = false; }
-  const nb = {}; zipPret.photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
-  let manques = 0;
-  const ligne = (libelle, valeur, rouge) => {
-    const d = document.createElement('div'); d.className = 'ligne'; d.innerHTML = '<span></span><b></b>';
-    d.firstChild.textContent = libelle; d.lastChild.textContent = valeur; if (rouge){ d.lastChild.className = 'manque'; manques++; }
-    $('recap').appendChild(d);
-  };
-  for (const code of ['SITE', 'PANO', ...sondages(c), 'FICHE']){
-    const n = nb[code] || 0, facultatif = code === 'PANO';
-    ligne(infoCat(code).nom, n ? n + ' photo' + (n > 1 ? 's' : '') : (facultatif ? '—' : 'MANQUE'), !n && !facultatif);
-  }
-  const nonPlaces = sondages(c).filter(s => !c.implantation[s]).length;
-  ligne("PLAN D'IMPLANTATION", !c.planImage ? 'non chargé' : nonPlaces ? nonPlaces + ' sondage(s) non positionné(s)' : 'complet', !c.planImage || nonPlaces > 0);
-  const mo = (zipPret.zip.size / 1048576).toFixed(1);
-  if (!zipPret.photos.length) note('Aucune photo dans ce chantier.');
-  else if (manques) note('Il manque des éléments (en rouge). Vous pouvez les compléter, ou envoyer quand même. Dossier : ' + mo + ' Mo.');
-  else note('Dossier complet : ' + zipPret.photos.length + ' photos, ' + mo + ' Mo.', true);
-  if (zipPret.illisibles.length) note('Attention : ' + zipPret.illisibles.length + ' élément(s) illisible(s) écarté(s) : ' + zipPret.illisibles.join(', ') + '. Le reste du dossier est prêt (' + mo + ' Mo).');
-  if (c.envoye && c.lienEnvoi) note('Déjà envoyé au bureau le ' + dateFR(c.dateEnvoi || c.date) + '. Retouchez ENVOYER pour renvoyer (photos ajoutées, ou lien expiré).', true);
+function check(){
+  const q=G.cur,typed=$("g-ans").value;
+  if(!typed.trim())return;
+  const exp=q.d==="fd"?q.e.dz:q.e.fr;
+  const ok=q.d==="fd"?dzOk(typed,exp):frOk(typed,exp);
+  q.ok=ok;if(ok)G.good++;else G.bad++;
+  const fb=$("g-fb");fb.hidden=false;fb.className="g-fb "+(ok?"ok":"ko");
+  fb.innerHTML=ok?`<b>Juste.</b> ${esc(exp)}`:`<b>Faux.</b> Réponse attendue : <span class="mono">${esc(exp)}</span>`;
+  $("g-ans").disabled=true;$("g-check").hidden=true;$("g-next").hidden=false;$("g-over").hidden=ok;
+  $("g-score").textContent=`${G.good} juste${G.good>1?"s":""} · ${G.bad} faux`;
+  $("g-next").focus();
 }
-$('btnFin').onclick = ouvrirEnvoi;
-$('btnReessayer').onclick = ouvrirEnvoi;
-$('btnEnvRetour').onclick = () => ouvrirChantier(chantierCourant);
-// Envoi en un clic (hébergeur public accepté par Kaliforage) : le zip est déposé en ligne (72 h),
-// puis le lien part par mail au bureau via ntfy. Le chantier reste dans le téléphone pour un re-envoi.
-const CLE = () => { try { return localStorage.getItem('cleBureau') || ''; } catch (e) { return ''; } };
-function deposer(url, form, extraire){
-  return new Promise((ok, ko) => {
-    const x = new XMLHttpRequest(); x.open('POST', url); x.timeout = 600000;
-    x.upload.onprogress = e => { if (e.lengthComputable) note('Envoi en cours : ' + Math.round(100 * e.loaded / e.total) + ' %… Gardez l\'appli ouverte.', true); };
-    x.onload = () => { try { const l = x.status < 300 && extraire(x.responseText); l ? ok(l) : ko(new Error('réponse inattendue')); } catch (e) { ko(e); } };
-    x.onerror = () => ko(new Error('pas de réseau')); x.ontimeout = () => ko(new Error('délai dépassé'));
-    x.send(form);
-  });
+function override(){
+  if(G.cur.ok)return;G.cur.ok=true;G.good++;G.bad--;
+  $("g-fb").className="g-fb ok";$("g-fb").innerHTML=`<b>Compté juste.</b> ${esc(G.cur.d==="fd"?G.cur.e.dz:G.cur.e.fr)}`;
+  $("g-over").hidden=true;$("g-score").textContent=`${G.good} juste${G.good>1?"s":""} · ${G.bad} faux`;
 }
-async function deposerZip(z){
-  try {
-    const f = new FormData(); f.append('reqtype', 'fileupload'); f.append('time', '72h'); f.append('fileToUpload', z, z.name);
-    return await deposer('https://litterbox.catbox.moe/resources/internals/api.php', f, t => /^https:\/\//.test(t.trim()) ? t.trim() : null);
-  } catch (e) {
-    const f = new FormData(); f.append('file', z, z.name);
-    return await deposer('https://upload.gofile.io/uploadfile', f, t => JSON.parse(t).data.downloadPage);
-  }
+function next(){
+  G.i++;
+  if(G.i<G.qs.length)return showQ();
+  const pct=Math.round(G.good/G.qs.length*100);
+  let best=loadBest();
+  const record=!best||pct>best;
+  if(record){best=pct;saveBest(pct)}
+  $("g-bar").style.width="100%";
+  $("g-play").hidden=true;$("g-end").hidden=false;
+  $("g-res").textContent=`${pct} %`;
+  $("g-resd").textContent=`${G.good} bonne${G.good>1?"s":""} réponse${G.good>1?"s":""} sur ${G.qs.length}.`+(record?" Nouveau meilleur score !":` Meilleur score : ${best} %.`);
+  const miss=G.qs.filter(q=>!q.ok);
+  $("g-miss").innerHTML=miss.length?`<h3>À revoir</h3><ul>`+miss.map(q=>`<li><span class="mono">${esc(q.e.dz)}</span> = ${esc(q.e.fr)}</li>`).join("")+"</ul>":"";
 }
-let envoiEnCours = false, attendreReseau = false;
-async function envoyer(){
-  if (envoiEnCours) return;
-  if (!zipPret){ note('Le dossier est encore en préparation, patientez quelques secondes…'); return; }
-  if (!zipPret.photos.length) return;
-  const c = chantierCourant, z = zipPret.zip, cle = CLE();
-  if (!cle){ note('Appli pas encore reliée au bureau : ouvrez une fois le lien du chantier dans l\'agenda (ou le lien d\'installation).'); return; }
-  if (!navigator.onLine){ attendreReseau = true; note('Pas de réseau. Le dossier partira tout seul dès que le réseau revient si l\'appli reste ouverte, sinon retouchez ENVOYER plus tard. Rien n\'est perdu.'); return; }
-  envoiEnCours = true; $('btnEnvoyer').disabled = true;
-  try {
-    const lien = await deposerZip(z);
-    const titre = 'Chantier ' + c.nom + ' du ' + dateFR(c.date);
-    const details = zipPret.photos.length + ' photos - ' + (z.size / 1048576).toFixed(1) + ' Mo';
-    const copie = MAIL_FOREUR();
-    const mail = () => fetch('https://formsubmit.co/ajax/' + DESTINATAIRE, {method: 'POST',
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-      body: JSON.stringify({_subject: titre, _template: 'box', _captcha: 'false', ...(mailValide(copie) ? {_cc: copie} : {}),
-        Chantier: c.nom, Date: dateFR(c.date), Contenu: details, 'Envoye le': new Date().toLocaleString('fr-FR'), 'Telecharger le zip (72 h)': lien})});
-    let r = await mail();
-    if (r.status >= 500){ await new Promise(ok => setTimeout(ok, 3000)); r = await mail(); }
-    const rep = await r.json().catch(() => ({}));
-    if (!r.ok || String(rep.success) !== 'true') throw new Error('mail non parti : ' + (rep.message || r.status));
-    // copie de secours sur le canal de notification (sans incidence si elle échoue)
-    fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify({topic: cle, title: titre, message: details + '\n' + lien, click: lien, tags: ['package']})}).catch(() => {});
-    c.envoye = true; c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString(); await sauverChantier(c); attendreReseau = false;
-    note('✔ ENVOYÉ au bureau le ' + new Date().toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) + '.' + (mailValide(copie) ? ' Une copie (accusé d\'envoi) part sur ' + copie + '.' : ' Ajoutez votre adresse mail sur l\'accueil pour recevoir un accusé d\'envoi.') + ' Vous pouvez fermer l\'appli.', true);
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-  } catch (e) {
-    attendreReseau = true;
-    note('Envoi pas encore fait (' + e.message + '). Retouchez ENVOYER quand il y a du réseau. Rien n\'est perdu.');
-  }
-  envoiEnCours = false; $('btnEnvoyer').disabled = false;
+function initGame(){
+  const best=loadBest();if(best!==null)$("g-best").textContent=`Meilleur score : ${best} %`;
+  $("g-cats").innerHTML=Object.entries(CATS).map(([k,l])=>`<label class="chk"><input type="checkbox" id="gc-${k}" value="${k}" checked> ${l}</label>`).join("");
+  ["g-src","g-cats"].forEach(id=>$(id).addEventListener("change",updateAvail));
+  $("g-start").onclick=startGame;$("g-check").onclick=check;$("g-next").onclick=next;$("g-over").onclick=override;
+  $("g-again").onclick=startGame;$("g-cfg").onclick=()=>{$("g-end").hidden=true;$("g-setup").hidden=false};
+  $("g-quit").onclick=()=>{$("g-play").hidden=true;$("g-setup").hidden=false};
+  $("g-ans").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();check()}});
+  $("g-next").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();next()}});
+  updateAvail();
 }
-window.addEventListener('online', () => { if (attendreReseau && $('envoi').classList.contains('actif')) envoyer(); });
-$('btnEnvoyer').onclick = envoyer;
-$('btnSupprimer').onclick = () => choisir('Effacer ce chantier et toutes ses photos du téléphone ?', [
-  {texte:'OUI, TOUT EFFACER', style:'danger', action: async () => {
-    const id = chantierCourant.id, photos = await photosDe(id);
-    await req('photos', 'readwrite', s => { photos.forEach(p => s.delete(p.id)); });
-    await req('chantiers', 'readwrite', s => s.delete(id));
-    afficherAccueil();
-  }},
-  {texte:'NON', style:'secondaire'}
-]);
-
-/* ---------- Démarrage ---------- */
-(async () => {
-  bd = await ouvrirBD();
-  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-  const p = new URLSearchParams(location.search), c = p.get('c');
-  if (p.get('k')) { try { localStorage.setItem('cleBureau', p.get('k')); } catch (e) {} }
-  if (p.get('k') || c) history.replaceState(null, '', location.pathname);
-  if (c) await creerOuOuvrir(c, p.get('pt'));
-  else await afficherAccueil();
+function setTab(t){
+  ["dico","game","mag"].forEach(k=>$("tab-"+k).setAttribute("aria-selected",t===k));$("mag").hidden=t!=="mag";
+  $("dico").hidden=t!=="dico";$("dico-ctrl").hidden=t!=="dico";$("game").hidden=t!=="game";
+}
+$("tab-mag").onclick=()=>setTab("mag");$("tab-dico").onclick=()=>setTab("dico");$("tab-game").onclick=()=>setTab("game");
+initGame();
+$("copy-mail").onclick=async()=>{const b=$("copy-mail");try{await navigator.clipboard.writeText(MAIL);b.textContent="Adresse copiée"}catch(e){const r=document.createRange();r.selectNodeContents($("mail"));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent="Adresse sélectionnée"}setTimeout(()=>b.textContent="Copier l'adresse",2000)};
+(function(){
+  const sp=$("splash");let gone=false;
+  function hide(){if(gone)return;gone=true;sp.classList.add("out");setTimeout(()=>{sp.hidden=true},950)}
+  $("splash-skip").onclick=hide;sp.addEventListener("click",hide);
+  setTimeout(hide,4500);
 })();
+
 </script>
+
 </body>
 </html>
