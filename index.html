@@ -201,6 +201,7 @@ p{margin:0;font-size:19px;line-height:1.35}
     <div class="note" id="envNote"></div>
     <button class="envoyer" id="btnEnvoyer">ENVOYER</button>
     <button class="secondaire" id="btnReessayer" style="display:none">RÉESSAYER LA PRÉPARATION</button>
+    <button class="secondaire" id="btnPartagerLien" style="display:none">PARTAGER LE LIEN (WhatsApp, SMS…)</button>
     <button class="secondaire" id="btnEnvRetour">RETOUR AU CHANTIER</button>
     <button class="danger" id="btnSupprimer">EFFACER CE CHANTIER DU TÉLÉPHONE</button>
   </main>
@@ -217,7 +218,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.10';
+const VERSION = '1.11';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -967,10 +968,18 @@ async function ouvrirEnvoi(){
   else if (manques) note('Il manque des éléments (en rouge). Vous pouvez les compléter, ou envoyer quand même. Dossier : ' + mo + ' Mo.');
   else note('Dossier complet : ' + zipPret.photos.length + ' photos, ' + mo + ' Mo.', true);
   if (zipPret.illisibles.length) note('Attention : ' + zipPret.illisibles.length + ' élément(s) illisible(s) écarté(s) : ' + zipPret.illisibles.join(', ') + '. Le reste du dossier est prêt (' + mo + ' Mo).');
+  $('btnPartagerLien').style.display = c.envoye && c.lienEnvoi ? 'block' : 'none';
   if (c.envoye && c.lienEnvoi) note('Déjà envoyé au bureau le ' + dateFR(c.dateEnvoi || c.date) + '. Retouchez ENVOYER pour renvoyer (photos ajoutées, ou lien expiré).', true);
 }
 $('btnFin').onclick = ouvrirEnvoi;
 $('btnReessayer').onclick = ouvrirEnvoi;
+// Lien du dernier envoi : à transmettre aussi par WhatsApp / SMS si le mail ne suffit pas
+$('btnPartagerLien').onclick = async () => {
+  const c = chantierCourant; if (!c || !c.lienEnvoi) return;
+  const texte = 'Chantier ' + c.nom + ' du ' + dateFR(c.date) + ' - dossier à télécharger (72 h) : ' + c.lienEnvoi;
+  try { if (navigator.share) { await navigator.share({title: 'Chantier ' + c.nom, text: texte}); return; } } catch (e) { if (e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(texte); alert('Lien copié : collez-le dans WhatsApp ou un SMS.'); } catch (e) { prompt('Copiez ce lien :', c.lienEnvoi); }
+};
 $('btnEnvRetour').onclick = () => ouvrirChantier(chantierCourant);
 // Envoi en un clic (hébergeur public accepté par Kaliforage) : le zip est déposé en ligne (72 h),
 // puis le lien part par mail au bureau via ntfy. Le chantier reste dans le téléphone pour un re-envoi.
@@ -1009,8 +1018,9 @@ async function envoyer(){
     const copie = MAIL_FOREUR();
     const mail = () => fetch('https://formsubmit.co/ajax/' + DESTINATAIRE, {method: 'POST',
       headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-      body: JSON.stringify({_subject: titre, _template: 'box', _captcha: 'false', ...(mailValide(copie) ? {_cc: copie} : {}),
-        Chantier: c.nom, Date: dateFR(c.date), Contenu: details, 'Envoye le': new Date().toLocaleString('fr-FR'), 'Telecharger le zip (72 h)': lien})});
+      body: JSON.stringify({_subject: titre + ' - ' + lien, _template: 'table', _captcha: 'false', ...(mailValide(copie) ? {_cc: copie} : {}),
+        message: titre + ' (' + details + '). Telecharger le dossier (lien valable 72 h) : ' + lien,
+        chantier: c.nom, date_chantier: dateFR(c.date), contenu: details, envoye_le: new Date().toLocaleString('fr-FR'), lien: lien})});
     let r = await mail();
     if (r.status >= 500){ await new Promise(ok => setTimeout(ok, 3000)); r = await mail(); }
     const rep = await r.json().catch(() => ({}));
@@ -1020,6 +1030,7 @@ async function envoyer(){
     c.envoye = true; c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString(); await sauverChantier(c); attendreReseau = false;
     note('✔ ENVOYÉ au bureau le ' + new Date().toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) + '.' + (mailValide(copie) ? ' Une copie (accusé d\'envoi) part sur ' + copie + '.' : ' Ajoutez votre adresse mail sur l\'accueil pour recevoir un accusé d\'envoi.') + ' Vous pouvez fermer l\'appli.', true);
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    $('btnPartagerLien').style.display = 'block';
   } catch (e) {
     attendreReseau = true;
     note('Envoi pas encore fait (' + e.message + '). Retouchez ENVOYER quand il y a du réseau. Rien n\'est perdu.');
