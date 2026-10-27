@@ -205,6 +205,7 @@ p{margin:0;font-size:19px;line-height:1.35}
     <button class="secondaire" id="btnReessayer" style="display:none">RÉESSAYER LA PRÉPARATION</button>
     <button class="secondaire" id="btnPartagerLien" style="display:none">PARTAGER LE LIEN (WhatsApp, SMS…)</button>
     <button class="secondaire" id="btnOuvrirLien" style="display:none">OUVRIR LE LIEN DE TÉLÉCHARGEMENT</button>
+    <button class="secondaire" id="btnMailLien" style="display:none">PRÉPARER UN MAIL AVEC LE LIEN</button>
     <button class="secondaire" id="btnGarder">GARDER UNE COPIE DANS MON TÉLÉPHONE</button>
     <button class="secondaire" id="btnEnvRetour">RETOUR AU CHANTIER</button>
     <button class="danger" id="btnSupprimer">EFFACER CE CHANTIER DU TÉLÉPHONE</button>
@@ -223,7 +224,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.13';
+const VERSION = '1.14';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -1010,7 +1011,7 @@ async function ouvrirEnvoi(){
   if (zipPret.zip.size > 900 * 1048576) note('Dossier trop lourd (' + mo + ' Mo, maximum 1 000 Mo) : retirez une ou deux vidéos dans l\'album avant d\'envoyer.');
   else if (zipPret.zip.size > 150 * 1048576) note('Dossier lourd (' + mo + ' Mo, avec vidéos) : envoyez de préférence en Wi-Fi ou avec un bon réseau, et gardez l\'appli ouverte pendant l\'envoi.', true);
   if (zipPret.illisibles.length) note('Attention : ' + zipPret.illisibles.length + ' élément(s) illisible(s) écarté(s) : ' + zipPret.illisibles.join(', ') + '. Le reste du dossier est prêt (' + mo + ' Mo).');
-  $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = c.envoye && c.lienEnvoi ? 'block' : 'none';
+  $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = $('btnMailLien').style.display = c.envoye && c.lienEnvoi ? 'block' : 'none';
   if (c.envoye && c.lienEnvoi) note('Déjà envoyé au bureau le ' + dateFR(c.dateEnvoi || c.date) + '. Retouchez ENVOYER pour renvoyer (photos ajoutées, ou lien expiré).', true);
 }
 $('btnFin').onclick = ouvrirEnvoi;
@@ -1025,6 +1026,23 @@ $('btnGarder').onclick = () => {
 };
 // Lien du dernier envoi (valable 72 h) : le foreur peut aussi télécharger le dossier lui-même
 $('btnOuvrirLien').onclick = () => { const c = chantierCourant; if (c && c.lienEnvoi) window.open(c.lienEnvoi, '_blank'); };
+// Mail préparé (pas envoyé) vers l'adresse de son choix : la messagerie s'ouvre, le foreur n'a qu'à appuyer sur Envoyer
+$('btnMailLien').onclick = () => {
+  const c = chantierCourant; if (!c || !c.lienEnvoi) return;
+  let dernier = ''; try { dernier = localStorage.getItem('dernierDest') || ''; } catch (e) {}
+  choisir('À quelle adresse envoyer le lien du dossier ?', [
+    {champ: 'adresse@exemple.fr', id: 'champDest', valeur: dernier, mode: 'email'},
+    {texte: 'PRÉPARER LE MAIL', action: () => {
+      const dest = ($('champDest').value || '').trim();
+      if (!mailValide(dest)){ alert('Adresse mail incorrecte.'); return; }
+      try { localStorage.setItem('dernierDest', dest); } catch (e) {}
+      const objet = 'Chantier ' + c.nom + ' du ' + dateFR(c.date) + ' - dossier photos';
+      const corps = 'Bonjour,\n\nVoici le dossier du chantier ' + c.nom + ' du ' + dateFR(c.date) + ' (photos triées, plan d\'implantation).\nTéléchargement (lien valable 72 h) :\n' + c.lienEnvoi + '\n\nCordialement';
+      location.href = 'mailto:' + dest + '?subject=' + encodeURIComponent(objet) + '&body=' + encodeURIComponent(corps);
+    }},
+    {texte: 'ANNULER', style: 'discret'}
+  ]);
+};
 // Lien du dernier envoi : à transmettre aussi par WhatsApp / SMS si le mail ne suffit pas
 $('btnPartagerLien').onclick = async () => {
   const c = chantierCourant; if (!c || !c.lienEnvoi) return;
@@ -1082,7 +1100,7 @@ async function envoyer(){
     c.envoye = true; c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString(); await sauverChantier(c); attendreReseau = false;
     note('✔ ENVOYÉ au bureau le ' + new Date().toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) + '.' + (mailValide(copie) ? ' Une copie (accusé d\'envoi) part sur ' + copie + '.' : ' Ajoutez votre adresse mail sur l\'accueil pour recevoir un accusé d\'envoi.') + ' Vous pouvez fermer l\'appli.', true);
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = 'block';
+    $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = $('btnMailLien').style.display = 'block';
   } catch (e) {
     attendreReseau = true;
     note('Envoi pas encore fait (' + e.message + '). Retouchez ENVOYER quand il y a du réseau. Rien n\'est perdu.');
@@ -1106,11 +1124,16 @@ $('btnSupprimer').onclick = () => choisir('Effacer ce chantier et toutes ses pho
   bd = await ouvrirBD();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-  const p = new URLSearchParams(location.search), c = p.get('c');
-  if (p.get('k')) { try { localStorage.setItem('cleBureau', p.get('k')); } catch (e) {} }
-  if (p.get('k') || c) history.replaceState(null, '', location.pathname);
-  if (c) await creerOuOuvrir(c, p.get('pt'));
-  else await afficherAccueil();
+  // Lien de chantier (agenda) : traité au démarrage ET quand l'appli est déjà ouverte sur un autre chantier
+  const traiterLien = async (url, demarrage) => {
+    const p = new URL(url).searchParams, c = p.get('c');
+    if (p.get('k')) { try { localStorage.setItem('cleBureau', p.get('k')); } catch (e) {} }
+    if (p.get('k') || c) history.replaceState(null, '', location.pathname);
+    if (c){ couperCamera(); fermerFenetre(); await creerOuOuvrir(c, p.get('pt')); }
+    else if (demarrage) await afficherAccueil();
+  };
+  if ('launchQueue' in window) window.launchQueue.setConsumer(lp => { if (lp.targetURL && new URL(lp.targetURL).searchParams.get('c')) traiterLien(lp.targetURL, false); });
+  await traiterLien(location.href, true);
 })();
 </script>
 </body>
