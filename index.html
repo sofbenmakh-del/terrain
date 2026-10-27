@@ -202,6 +202,8 @@ p{margin:0;font-size:19px;line-height:1.35}
     <button class="envoyer" id="btnEnvoyer">ENVOYER</button>
     <button class="secondaire" id="btnReessayer" style="display:none">RÉESSAYER LA PRÉPARATION</button>
     <button class="secondaire" id="btnPartagerLien" style="display:none">PARTAGER LE LIEN (WhatsApp, SMS…)</button>
+    <button class="secondaire" id="btnOuvrirLien" style="display:none">OUVRIR LE LIEN DE TÉLÉCHARGEMENT</button>
+    <button class="secondaire" id="btnGarder">GARDER UNE COPIE DANS MON TÉLÉPHONE</button>
     <button class="secondaire" id="btnEnvRetour">RETOUR AU CHANTIER</button>
     <button class="danger" id="btnSupprimer">EFFACER CE CHANTIER DU TÉLÉPHONE</button>
   </main>
@@ -218,7 +220,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.11';
+const VERSION = '1.12';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -968,11 +970,21 @@ async function ouvrirEnvoi(){
   else if (manques) note('Il manque des éléments (en rouge). Vous pouvez les compléter, ou envoyer quand même. Dossier : ' + mo + ' Mo.');
   else note('Dossier complet : ' + zipPret.photos.length + ' photos, ' + mo + ' Mo.', true);
   if (zipPret.illisibles.length) note('Attention : ' + zipPret.illisibles.length + ' élément(s) illisible(s) écarté(s) : ' + zipPret.illisibles.join(', ') + '. Le reste du dossier est prêt (' + mo + ' Mo).');
-  $('btnPartagerLien').style.display = c.envoye && c.lienEnvoi ? 'block' : 'none';
+  $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = c.envoye && c.lienEnvoi ? 'block' : 'none';
   if (c.envoye && c.lienEnvoi) note('Déjà envoyé au bureau le ' + dateFR(c.dateEnvoi || c.date) + '. Retouchez ENVOYER pour renvoyer (photos ajoutées, ou lien expiré).', true);
 }
 $('btnFin').onclick = ouvrirEnvoi;
 $('btnReessayer').onclick = ouvrirEnvoi;
+// Copie personnelle du foreur : le zip trié est enregistré dans « Téléchargements » du téléphone (sans réseau)
+$('btnGarder').onclick = () => {
+  if (!zipPret || !zipPret.zip){ note('Le dossier est encore en préparation, patientez quelques secondes…'); return; }
+  const z = zipPret.zip, a = document.createElement('a');
+  a.href = URL.createObjectURL(z); a.download = z.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 120000); vibrer();
+  note('Copie enregistrée dans « Téléchargements » du téléphone : ' + z.name + '. Ouvrez-la avec l\'appli Fichiers.', true);
+};
+// Lien du dernier envoi (valable 72 h) : le foreur peut aussi télécharger le dossier lui-même
+$('btnOuvrirLien').onclick = () => { const c = chantierCourant; if (c && c.lienEnvoi) window.open(c.lienEnvoi, '_blank'); };
 // Lien du dernier envoi : à transmettre aussi par WhatsApp / SMS si le mail ne suffit pas
 $('btnPartagerLien').onclick = async () => {
   const c = chantierCourant; if (!c || !c.lienEnvoi) return;
@@ -1030,7 +1042,7 @@ async function envoyer(){
     c.envoye = true; c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString(); await sauverChantier(c); attendreReseau = false;
     note('✔ ENVOYÉ au bureau le ' + new Date().toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) + '.' + (mailValide(copie) ? ' Une copie (accusé d\'envoi) part sur ' + copie + '.' : ' Ajoutez votre adresse mail sur l\'accueil pour recevoir un accusé d\'envoi.') + ' Vous pouvez fermer l\'appli.', true);
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    $('btnPartagerLien').style.display = 'block';
+    $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = 'block';
   } catch (e) {
     attendreReseau = true;
     note('Envoi pas encore fait (' + e.message + '). Retouchez ENVOYER quand il y a du réseau. Rien n\'est perdu.');
