@@ -62,7 +62,8 @@ p{margin:0;font-size:19px;line-height:1.35}
 .vg{position:relative}
 .vg span{position:absolute;left:6px;top:6px;background:#000b;color:#fff;font-size:13px;font-weight:700;padding:2px 7px;border-radius:6px}
 .vignettes img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:3px solid var(--gris);display:block}
-#grande{width:100%;max-height:60vh;object-fit:contain;background:#000;border-radius:12px}
+#grande,#grandeVideo{width:100%;max-height:60vh;object-fit:contain;background:#000;border-radius:12px}
+.vignettes video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:3px solid var(--orange);display:block;background:#000}
 /* plan */
 #zonePlan{overflow:auto;background:#222;border-radius:12px;max-height:58vh}
 #canvasPlan{touch-action:none}
@@ -150,6 +151,7 @@ p{margin:0;font-size:19px;line-height:1.35}
   <header><div class="petit">Photo</div><div class="titre" id="visTitre"></div></header>
   <main>
     <img id="grande" alt="">
+    <video id="grandeVideo" controls playsinline style="display:none"></video>
     <button class="secondaire" id="btnChangerCat">CHANGER DE CATÉGORIE</button>
     <button class="danger" id="btnSupprPhoto">SUPPRIMER CETTE PHOTO</button>
     <button id="btnVisRetour" style="background:var(--vert)">GARDER ET REVENIR</button>
@@ -214,13 +216,14 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <input type="file" id="fichierPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="fichierGalerie" accept="image/*" multiple hidden>
-<input type="file" id="fichierAjout" accept="image/*" multiple hidden>
+<input type="file" id="fichierAjout" accept="image/*,video/*" multiple hidden>
+<input type="file" id="fichierVideo" accept="video/*" multiple hidden>
 <input type="file" id="fichierPano" accept="image/*" capture="environment" hidden>
 <input type="file" id="fichierPlan" accept="application/pdf,image/*" hidden>
 
 <script>
 'use strict';
-const VERSION = '1.12';
+const VERSION = '1.13';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -355,6 +358,11 @@ async function ouvrirChantier(c){
     g.appendChild(b);
   };
   tuile('SITE'); tuile('PANO', '', ouvrirPanorama);
+  const vids = photos.filter(p => p.video);
+  const tv = document.createElement('button'); tv.className = 'tuile large' + (vids.length ? ' fait' : '');
+  tv.innerHTML = '<span>+ VIDÉOS DU SITE</span><span class="nb"></span>';
+  tv.lastChild.textContent = vids.length ? vids.length + ' vidéo(s) · ' + mo(vids.reduce((t, v) => t + v.blob.size, 0)) + ' · touchez pour en ajouter' : 'à choisir dans la galerie du téléphone';
+  tv.onclick = () => $('fichierVideo').click(); g.appendChild(tv);
   for (let i = 1; i <= c.tarieres; i++) tuile('TR' + i);
   (c.extras || []).filter(e => e.type === 'TR').forEach(e => tuile(e.nom));
   ajout('+ TARIÈRE', 'tarieres');
@@ -413,6 +421,16 @@ async function enregistrer(source, cat, max, sansMarque){
   await req('photos', 'readwrite', s => s.add({chantier: chantierCourant.id, cat, n, nom, heure: new Date().toISOString(), blob, prof, marque}));
   if (chantierCourant.envoye){ chantierCourant.envoye = false; await sauverChantier(chantierCourant); }
 }
+
+async function enregistrerVideo(f){
+  const n = await prochainNumero('SITE');
+  const ext = ((f.name.match(/\.([a-z0-9]{2,4})$/i) || [])[1] || (f.type.split('/')[1] || 'mp4')).toLowerCase();
+  const nom = prefixe(chantierCourant.nom) + '_SITE_VIDEO_' + z2(n) + '.' + ext;
+  await req('photos', 'readwrite', s => s.add({chantier: chantierCourant.id, cat: 'SITE', n, nom, heure: new Date().toISOString(), blob: f, video: true}));
+  if (chantierCourant.envoye){ chantierCourant.envoye = false; await sauverChantier(chantierCourant); }
+}
+const estVideo = f => /^video\//.test(f.type) || /\.(mp4|mov|3gp|webm|mkv)$/i.test(f.name || '');
+const mo = o => (o / 1048576).toFixed(0) + ' Mo';
 
 /* ---------- Caméra ---------- */
 async function majCamera(){
@@ -534,10 +552,14 @@ async function ouvrirGalerie(cat, retour){
   if (global) p.sort((a, b) => ((ordre.indexOf(a.cat) + 1 || 99) - (ordre.indexOf(b.cat) + 1 || 99)) || a.n - b.n);
   $('galSous').textContent = (global ? p.length + ' photos · ' : '') + 'touchez une photo pour la gérer';
   const g = $('galGrille');
-  g.querySelectorAll('img').forEach(i => URL.revokeObjectURL(i.src)); g.innerHTML = '';
+  g.querySelectorAll('img,video').forEach(i => URL.revokeObjectURL(i.src)); g.innerHTML = '';
   for (const ph of p){
     const d = document.createElement('div'), i = document.createElement('img'); d.className = 'vg';
-    i.src = URL.createObjectURL(ph.blob); i.loading = 'lazy'; i.onclick = () => ouvrirVisionneuse(ph); d.appendChild(i);
+    if (ph.video){
+      const v = document.createElement('video'); v.muted = true; v.preload = 'metadata'; v.src = URL.createObjectURL(ph.blob) + '#t=0.5';
+      v.onclick = () => ouvrirVisionneuse(ph); d.appendChild(v);
+      const t = document.createElement('span'); t.textContent = '▶ Vidéo'; t.style.top = 'auto'; t.style.bottom = '6px'; d.appendChild(t);
+    } else { i.src = URL.createObjectURL(ph.blob); i.loading = 'lazy'; i.onclick = () => ouvrirVisionneuse(ph); d.appendChild(i); }
     if (global){ const t = document.createElement('span'); t.textContent = ph.cat === 'SITE' ? 'Site' : ph.cat === 'PANO' ? 'Panorama' : ph.cat === 'FICHE' ? 'Fiche' : ph.cat; d.appendChild(t); }
     g.appendChild(d);
   }
@@ -562,8 +584,11 @@ $('btnAnnulerSondage').onclick = async () => {
 let photoVue = null;
 function ouvrirVisionneuse(ph){
   photoVue = ph; $('visTitre').textContent = infoCat(ph.cat).nom + ' · n° ' + ph.n;
-  $('btnChangerCat').style.display = 'block';
-  const g = $('grande'); if (g.src) URL.revokeObjectURL(g.src); g.src = URL.createObjectURL(ph.blob);
+  $('btnChangerCat').style.display = ph.video ? 'none' : 'block';
+  const g = $('grande'), gv = $('grandeVideo');
+  if (g.src) URL.revokeObjectURL(g.src); if (gv.src){ gv.pause(); URL.revokeObjectURL(gv.src); gv.removeAttribute('src'); }
+  g.style.display = ph.video ? 'none' : 'block'; gv.style.display = ph.video ? 'block' : 'none';
+  if (ph.video){ gv.src = URL.createObjectURL(ph.blob); $('visTitre').textContent = 'VIDÉO DU SITE · ' + mo(ph.blob.size); } else g.src = URL.createObjectURL(ph.blob);
   montrer('visionneuse');
 }
 $('btnVisRetour').onclick = () => ouvrirGalerie(catCourante, retourGalerie);
@@ -580,8 +605,16 @@ $('btnChangerCat').onclick = () => choisirCategorie('Ranger cette photo dans :',
   ouvrirGalerie(catCourante, retourGalerie);
 });
 $('btnGalAjouter').onclick = () => $('fichierAjout').click();
-$('fichierAjout').onchange = async e => {
+$('fichierVideo').onchange = async e => {
   const fichiers = [...e.target.files]; e.target.value = ''; if (!fichiers.length) return;
+  for (const f of fichiers){ try { await enregistrerVideo(f); } catch (err) { alert('Vidéo non ajoutée : ' + f.name); } }
+  vibrer(); ouvrirChantier(chantierCourant);
+};
+$('fichierAjout').onchange = async e => {
+  const tous = [...e.target.files]; e.target.value = ''; if (!tous.length) return;
+  const videos = tous.filter(estVideo), fichiers = tous.filter(f => !estVideo(f));
+  for (const v of videos){ try { await enregistrerVideo(v); } catch (err) {} }   // vidéos : toujours dans « Vue du site »
+  if (!fichiers.length){ vibrer(); ouvrirGalerie(catCourante, retourGalerie); return; }
   const ajouter = async code => {
     $('galSous').textContent = 'Ajout de ' + fichiers.length + ' photo(s)…';
     for (const f of fichiers){ try { await enregistrer(f, code, code === 'PANO' ? 4096 : TAILLE_MAX, true); } catch (err) {} }
@@ -884,14 +917,19 @@ async function planAnnote(){
 
 /* ---------- Archive zip ---------- */
 const TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-function crc32(o){ let c = 0xFFFFFFFF; for (let i = 0; i < o.length; i++) c = TABLE[(c ^ o[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function crc32(o, c0){ let c = c0 === undefined ? 0xFFFFFFFF : c0; for (let i = 0; i < o.length; i++) c = TABLE[(c ^ o[i]) & 255] ^ (c >>> 8); return c; }
+async function crcBlob(b){
+  let c = 0xFFFFFFFF; const pas = 4 * 1048576;
+  for (let i = 0; i < b.size; i += pas){ c = crc32(new Uint8Array(await b.slice(i, i + pas).arrayBuffer()), c); if (b.size > pas) await new Promise(ok => setTimeout(ok, 0)); }
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
 async function fabriquerZip(entrees, progres, ecartes){
   const enc = new TextEncoder(), morceaux = [], central = []; let pos = 0, k = 0;
   for (const e of entrees){
     k++; if (progres) progres(k, entrees.length);
     await new Promise(ok => setTimeout(ok, 0));   // laisse l'écran se mettre à jour
     let crc;
-    try { crc = crc32(new Uint8Array(await e.blob.arrayBuffer())); }
+    try { crc = await crcBlob(e.blob); }
     catch (err) { if (ecartes) ecartes.push(e.chemin.split('/').pop()); continue; }   // fichier illisible : écarté, l'envoi continue
     const nom = enc.encode(e.chemin), data = {length: e.blob.size}, d = e.date;
     const heure = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
@@ -933,7 +971,7 @@ async function preparer(progres){
     chantier: c.nom, date_chantier: c.date.slice(0, 10), tarieres: c.tarieres, penetros: c.penetros,
     implantation: sondages(c).map(s => { const im = c.implantation[s] || {}; return {sondage: s, statut: im.statut || 'non indiqué', raison: im.raison || '', x: im.x ?? null, y: im.y ?? null}; }),
     lien_proposition_technique: c.lienPT || null, version_appli: VERSION,
-    photos: photos.map(p => ({fichier: p.nom, categorie: p.cat, dossier: infoCat(p.cat).dossier, heure: p.heure, profondeur_m: p.prof ?? null}))
+    photos: photos.map(p => ({fichier: p.nom, categorie: p.cat, dossier: infoCat(p.cat).dossier, heure: p.heure, profondeur_m: p.prof ?? null, video: !!p.video}))
   };
   const entrees = photos.map(p => ({chemin: racine + infoCat(p.cat).dossier + '/' + p.nom, blob: p.blob, date: new Date(p.heure)}));
   let plan = null;
@@ -969,6 +1007,8 @@ async function ouvrirEnvoi(){
   if (!zipPret.photos.length) note('Aucune photo dans ce chantier.');
   else if (manques) note('Il manque des éléments (en rouge). Vous pouvez les compléter, ou envoyer quand même. Dossier : ' + mo + ' Mo.');
   else note('Dossier complet : ' + zipPret.photos.length + ' photos, ' + mo + ' Mo.', true);
+  if (zipPret.zip.size > 900 * 1048576) note('Dossier trop lourd (' + mo + ' Mo, maximum 1 000 Mo) : retirez une ou deux vidéos dans l\'album avant d\'envoyer.');
+  else if (zipPret.zip.size > 150 * 1048576) note('Dossier lourd (' + mo + ' Mo, avec vidéos) : envoyez de préférence en Wi-Fi ou avec un bon réseau, et gardez l\'appli ouverte pendant l\'envoi.', true);
   if (zipPret.illisibles.length) note('Attention : ' + zipPret.illisibles.length + ' élément(s) illisible(s) écarté(s) : ' + zipPret.illisibles.join(', ') + '. Le reste du dossier est prêt (' + mo + ' Mo).');
   $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = c.envoye && c.lienEnvoi ? 'block' : 'none';
   if (c.envoye && c.lienEnvoi) note('Déjà envoyé au bureau le ' + dateFR(c.dateEnvoi || c.date) + '. Retouchez ENVOYER pour renvoyer (photos ajoutées, ou lien expiré).', true);
