@@ -224,7 +224,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.14';
+const VERSION = '1.15';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -1030,6 +1030,7 @@ $('btnOuvrirLien').onclick = () => { const c = chantierCourant; if (c && c.lienE
 $('btnMailLien').onclick = () => {
   const c = chantierCourant; if (!c || !c.lienEnvoi) return;
   let dernier = ''; try { dernier = localStorage.getItem('dernierDest') || ''; } catch (e) {}
+  if (!c.envoye) dernier = DESTINATAIRE;   // mail automatique pas parti : le bureau d'abord
   choisir('À quelle adresse envoyer le lien du dossier ?', [
     {champ: 'adresse@exemple.fr', id: 'champDest', valeur: dernier, mode: 'email'},
     {texte: 'PRÉPARER LE MAIL', action: () => {
@@ -1073,6 +1074,7 @@ async function deposerZip(z){
   }
 }
 let envoiEnCours = false, attendreReseau = false;
+const pause = ms => new Promise(ok => setTimeout(ok, ms));
 async function envoyer(){
   if (envoiEnCours) return;
   if (!zipPret){ note('Le dossier est encore en préparation, patientez quelques secondes…'); return; }
@@ -1081,29 +1083,57 @@ async function envoyer(){
   if (!cle){ note('Appli pas encore reliée au bureau : ouvrez une fois le lien du chantier dans l\'agenda (ou le lien d\'installation).'); return; }
   if (!navigator.onLine){ attendreReseau = true; note('Pas de réseau. Le dossier partira tout seul dès que le réseau revient si l\'appli reste ouverte, sinon retouchez ENVOYER plus tard. Rien n\'est perdu.'); return; }
   envoiEnCours = true; $('btnEnvoyer').disabled = true;
+  const titre = 'Chantier ' + c.nom + ' du ' + dateFR(c.date);
+  const details = zipPret.photos.length + ' photos - ' + (z.size / 1048576).toFixed(1) + ' Mo';
+  let lien = null;
   try {
-    const lien = await deposerZip(z);
-    const titre = 'Chantier ' + c.nom + ' du ' + dateFR(c.date);
-    const details = zipPret.photos.length + ' photos - ' + (z.size / 1048576).toFixed(1) + ' Mo';
-    const copie = MAIL_FOREUR();
-    const mail = () => fetch('https://formsubmit.co/ajax/' + DESTINATAIRE, {method: 'POST',
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-      body: JSON.stringify({_subject: titre + ' - ' + lien, _template: 'table', _captcha: 'false', ...(mailValide(copie) ? {_cc: copie} : {}),
-        message: titre + ' (' + details + '). Telecharger le dossier (lien valable 72 h) : ' + lien,
-        chantier: c.nom, date_chantier: dateFR(c.date), contenu: details, envoye_le: new Date().toLocaleString('fr-FR'), lien: lien})});
-    let r = await mail();
-    if (r.status >= 500){ await new Promise(ok => setTimeout(ok, 3000)); r = await mail(); }
-    const rep = await r.json().catch(() => ({}));
-    if (!r.ok || String(rep.success) !== 'true') throw new Error('mail non parti : ' + (rep.message || r.status));
-    // copie de secours sur le canal de notification (sans incidence si elle échoue)
-    fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify({topic: cle, title: titre, message: details + '\n' + lien, click: lien, tags: ['package']})}).catch(() => {});
-    c.envoye = true; c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString(); await sauverChantier(c); attendreReseau = false;
-    note('✔ ENVOYÉ au bureau le ' + new Date().toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) + '.' + (mailValide(copie) ? ' Une copie (accusé d\'envoi) part sur ' + copie + '.' : ' Ajoutez votre adresse mail sur l\'accueil pour recevoir un accusé d\'envoi.') + ' Vous pouvez fermer l\'appli.', true);
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = $('btnMailLien').style.display = 'block';
+    // 1. Dépôt du dossier en ligne (réutilisé s'il a déjà été déposé tel quel : pas de double envoi de données)
+    if (c.depot && c.depot.taille === z.size && Date.now() - c.depot.quand < 60 * 3600e3) lien = c.depot.lien;
+    else {
+      lien = await deposerZip(z);
+      c.depot = {lien, taille: z.size, quand: Date.now()}; c.lienEnvoi = lien; await sauverChantier(c);
+    }
   } catch (e) {
     attendreReseau = true;
-    note('Envoi pas encore fait (' + e.message + '). Retouchez ENVOYER quand il y a du réseau. Rien n\'est perdu.');
+    note('Le dossier n\'a pas pu partir (' + e.message + '). Vérifiez le réseau et retouchez ENVOYER. Rien n\'est perdu.');
+    envoiEnCours = false; $('btnEnvoyer').disabled = false; return;
+  }
+  // 2. Mail au bureau : requête « simple » (formulaire), compatible iPhone et Android, 3 essais
+  const copie = MAIL_FOREUR();
+  const champs = new URLSearchParams({_subject: titre + ' - ' + lien, _template: 'table', _captcha: 'false',
+    message: titre + ' (' + details + '). Telecharger le dossier (lien valable 72 h) : ' + lien,
+    chantier: c.nom, date_chantier: dateFR(c.date), contenu: details, envoye_le: new Date().toLocaleString('fr-FR'), lien});
+  if (mailValide(copie)) champs.set('_cc', copie);
+  let mailOk = false, raison = '';
+  for (let essai = 1; essai <= 3 && !mailOk; essai++){
+    try {
+      const r = await fetch('https://formsubmit.co/ajax/' + DESTINATAIRE, {method: 'POST', headers: {'Accept': 'application/json'}, body: champs});
+      const rep = await r.json().catch(() => ({}));
+      if (r.ok && String(rep.success) === 'true') mailOk = true; else raison = rep.message || ('code ' + r.status);
+    } catch (e) { raison = e.message; }
+    if (!mailOk && essai < 3) await pause(3000);
+  }
+  let mailSecours = false;
+  if (!mailOk){
+    // secours : même formulaire en envoi « aveugle » (le service ne renvoie pas de confirmation, mais le mail part)
+    try { await fetch('https://formsubmit.co/' + DESTINATAIRE, {method: 'POST', mode: 'no-cors', body: champs}); mailSecours = true; } catch (e) {}
+  }
+  fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify({topic: cle, title: titre, message: details + '\n' + lien, click: lien, tags: ['package']})}).catch(() => {});
+  c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString();
+  $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = $('btnMailLien').style.display = 'block';
+  if (mailOk || mailSecours){
+    c.envoye = true; await sauverChantier(c); attendreReseau = false;
+    if (!mailOk){
+      note('✔ Dossier en ligne et mail envoyé au bureau (sans accusé du service de mail). Par sécurité, touchez aussi PARTAGER LE LIEN et envoyez-le par WhatsApp.', true);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      envoiEnCours = false; $('btnEnvoyer').disabled = false; return;
+    }
+    note('✔ ENVOYÉ au bureau le ' + new Date().toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) + '.' + (mailValide(copie) ? ' Une copie (accusé d\'envoi) part sur ' + copie + '.' : ' Ajoutez votre adresse mail sur l\'accueil pour recevoir un accusé d\'envoi.') + ' Vous pouvez fermer l\'appli.', true);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  } else {
+    // le dossier est en ligne : seul le mail automatique a échoué → le foreur transmet le lien lui-même
+    await sauverChantier(c);
+    note('Le dossier est bien en ligne ✔, mais le mail automatique n\'est pas parti (' + raison + '). Touchez PRÉPARER UN MAIL AVEC LE LIEN (le bureau est déjà en destinataire) ou PARTAGER LE LIEN par WhatsApp.');
   }
   envoiEnCours = false; $('btnEnvoyer').disabled = false;
 }
