@@ -206,6 +206,7 @@ p{margin:0;font-size:19px;line-height:1.35}
     <button class="secondaire" id="btnPartagerLien" style="display:none">PARTAGER LE LIEN (WhatsApp, SMS…)</button>
     <button class="secondaire" id="btnOuvrirLien" style="display:none">OUVRIR LE LIEN DE TÉLÉCHARGEMENT</button>
     <button class="secondaire" id="btnMailLien" style="display:none">PRÉPARER UN MAIL AVEC LE LIEN</button>
+    <button class="secondaire" id="btnFichier">ENVOYER LE DOSSIER PAR WHATSAPP / MAIL (fichier)</button>
     <button class="secondaire" id="btnGarder">GARDER UNE COPIE DANS MON TÉLÉPHONE</button>
     <button class="secondaire" id="btnEnvRetour">RETOUR AU CHANTIER</button>
     <button class="danger" id="btnSupprimer">EFFACER CE CHANTIER DU TÉLÉPHONE</button>
@@ -224,7 +225,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.15';
+const VERSION = '1.16';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -1017,6 +1018,16 @@ async function ouvrirEnvoi(){
 $('btnFin').onclick = ouvrirEnvoi;
 $('btnReessayer').onclick = ouvrirEnvoi;
 // Copie personnelle du foreur : le zip trié est enregistré dans « Téléchargements » du téléphone (sans réseau)
+// Secours sans serveur : le fichier zip lui-même part par WhatsApp, Mail, AirDrop… (feuille de partage du téléphone)
+$('btnFichier').onclick = async () => {
+  if (!zipPret || !zipPret.zip){ note('Le dossier est encore en préparation, patientez quelques secondes…'); return; }
+  const z = zipPret.zip, c = chantierCourant;
+  try {
+    if (navigator.canShare && navigator.canShare({files: [z]})){ await navigator.share({files: [z], title: 'Chantier ' + c.nom, text: 'Dossier du chantier ' + c.nom}); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  $('btnGarder').onclick();
+  note('Ce téléphone ne permet pas d\'envoyer le fichier directement : il est enregistré dans Téléchargements (« Fichiers »). Joignez-le à un WhatsApp ou un mail.', true);
+};
 $('btnGarder').onclick = () => {
   if (!zipPret || !zipPret.zip){ note('Le dossier est encore en préparation, patientez quelques secondes…'); return; }
   const z = zipPret.zip, a = document.createElement('a');
@@ -1118,13 +1129,20 @@ async function envoyer(){
     // secours : même formulaire en envoi « aveugle » (le service ne renvoie pas de confirmation, mais le mail part)
     try { await fetch('https://formsubmit.co/' + DESTINATAIRE, {method: 'POST', mode: 'no-cors', body: champs}); mailSecours = true; } catch (e) {}
   }
-  fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify({topic: cle, title: titre, message: details + '\n' + lien, click: lien, tags: ['package']})}).catch(() => {});
+  let annonceOk = false;
+  for (let essai = 1; essai <= 3 && !annonceOk; essai++){
+    try {
+      const r = await fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify({topic: cle, title: titre, message: details + '\n' + lien, click: lien, tags: ['package']})});
+      annonceOk = r.ok;
+    } catch (e) {}
+    if (!annonceOk && essai < 3) await pause(2000);
+  }
   c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString();
   $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = $('btnMailLien').style.display = 'block';
-  if (mailOk || mailSecours){
+  if (mailOk || mailSecours || annonceOk){
     c.envoye = true; await sauverChantier(c); attendreReseau = false;
     if (!mailOk){
-      note('✔ Dossier en ligne et mail envoyé au bureau (sans accusé du service de mail). Par sécurité, touchez aussi PARTAGER LE LIEN et envoyez-le par WhatsApp.', true);
+      note('✔ Dossier en ligne et signalé au bureau' + (annonceOk ? ' (reçu sur l\'écran de contrôle du bureau)' : '') + '. Le mail automatique n\'a pas confirmé : par sécurité, touchez aussi ENVOYER LE DOSSIER PAR WHATSAPP / MAIL.', true);
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       envoiEnCours = false; $('btnEnvoyer').disabled = false; return;
     }

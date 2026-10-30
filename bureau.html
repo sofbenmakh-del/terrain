@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Bureau - chantiers reçus</title>
+<style>
+:root{--bleu:#0b4f5c;--vert:#1f8a4c;--orange:#d9730d;--rouge:#b3261e;--fond:#f4f6f5}
+body{margin:0;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;background:var(--fond);color:#1b2a2e}
+header{background:var(--bleu);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+header h1{margin:0;font-size:24px}
+main{max-width:980px;margin:0 auto;padding:20px 16px}
+.etat{font-size:15px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #dde5e3;font-size:16px;vertical-align:middle}
+th{background:#e8f1f0;color:var(--bleu)}
+a.btn,button{display:inline-block;background:var(--vert);color:#fff;text-decoration:none;font-weight:700;padding:8px 14px;border-radius:6px;border:0;font:inherit;font-weight:700;cursor:pointer}
+button.sec{background:#fff;color:var(--bleu);border:2px solid var(--bleu)}
+.exp{color:var(--rouge);font-weight:700}
+.vide{padding:30px;text-align:center;color:#666;background:#fff;border-radius:8px}
+.note{font-size:14px;color:#555;margin-top:16px;line-height:1.5}
+</style>
+</head>
+<body>
+<header><h1>Chantiers reçus de l'appli terrain</h1><button class="sec" id="btnMaj" style="background:#fff">Actualiser</button></header>
+<main>
+  <div class="etat" id="etat">Chargement…</div>
+  <div id="liste"></div>
+  <p class="note">Chaque envoi du foreur apparaît ici, même si le mail n'est pas arrivé. Le lien de téléchargement reste valable 72 h après l'envoi : passé ce délai, demandez au foreur de retoucher ENVOYER (ses photos restent dans son téléphone).<br>
+  Le serveur d'annonce garde les envois 12 h : ouvrez cette page au moins une fois par jour, elle conserve ensuite tout l'historique sur ce PC.<br>
+  Page légère : quelques Ko par actualisation, rien n'est téléchargé tant que vous ne cliquez pas.</p>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const cle = new URLSearchParams(location.search).get('k') || (() => { try { return localStorage.getItem('cleBureau') || ''; } catch (e) { return ''; } })();
+try { if (cle) localStorage.setItem('cleBureau', cle); } catch (e) {}
+const lireArchive = () => { try { return JSON.parse(localStorage.getItem('archiveEnvois') || '{}'); } catch (e) { return {}; } };
+const ecrireArchive = a => { try { localStorage.setItem('archiveEnvois', JSON.stringify(a)); } catch (e) {} };
+function afficher(archive){
+  const l = Object.values(archive).sort((a, b) => b.time - a.time);
+  if (!l.length){ $('liste').innerHTML = '<div class="vide">Aucun envoi reçu pour l\'instant.</div>'; return; }
+  const t = document.createElement('table');
+  t.innerHTML = '<tr><th>Reçu le</th><th>Chantier</th><th>Contenu</th><th></th></tr>';
+  for (const e of l){
+    const tr = document.createElement('tr'), age = Date.now() / 1000 - e.time, expire = age > 72 * 3600;
+    const d = new Date(e.time * 1000).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'});
+    tr.innerHTML = '<td></td><td><b></b></td><td></td><td></td>';
+    tr.children[0].textContent = d; tr.children[1].firstChild.textContent = e.titre; tr.children[2].textContent = e.details;
+    if (expire){ tr.children[3].innerHTML = '<span class="exp">Lien expiré</span>'; }
+    else { const a = document.createElement('a'); a.className = 'btn'; a.href = e.lien; a.textContent = 'Télécharger'; a.target = '_blank'; a.rel = 'noopener'; tr.children[3].appendChild(a); }
+    t.appendChild(tr);
+  }
+  $('liste').innerHTML = ''; $('liste').appendChild(t);
+}
+async function actualiser(){
+  const archive = lireArchive(); afficher(archive);
+  if (!cle){ $('etat').textContent = 'Clé manquante : ouvrez cette page avec le lien complet fourni (…bureau.html?k=…).'; return; }
+  try {
+    const r = await fetch('https://ntfy.sh/' + encodeURIComponent(cle) + '/json?poll=1&since=all');
+    const txt = await r.text(); let n = 0;
+    for (const ligne of txt.split('\n')){
+      if (!ligne.trim()) continue;
+      let m; try { m = JSON.parse(ligne); } catch (e) { continue; }
+      if (m.event !== 'message' || !m.click) continue;
+      if (!archive[m.id]) n++;
+      archive[m.id] = {time: m.time, titre: m.title || 'Chantier', details: (m.message || '').split('\n')[0], lien: m.click};
+    }
+    ecrireArchive(archive); afficher(archive);
+    $('etat').textContent = 'Dernière vérification : ' + new Date().toLocaleTimeString('fr-FR') + (n ? ' — ' + n + ' nouvel(s) envoi(s).' : '') + ' Actualisation automatique toutes les 5 minutes.';
+  } catch (e) { $('etat').textContent = 'Serveur d\'annonce injoignable (' + e.message + '). Historique local affiché.'; }
+}
+$('btnMaj').onclick = actualiser;
+actualiser(); setInterval(actualiser, 5 * 60 * 1000);
+</script>
+</body>
+</html>
