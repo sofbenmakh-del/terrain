@@ -35,6 +35,10 @@ p{margin:0;font-size:19px;line-height:1.35}
 .note{background:#fff;border-left:8px solid var(--orange);border-radius:10px;padding:14px;font-size:19px;line-height:1.35}
 .note.ok{border-left-color:var(--vert)}
 .note b{font-weight:800}
+.urgent header{background:#b3261e}
+.bandeauUrgent{display:none;background:#b3261e;color:#fff;font-weight:800;font-size:20px;line-height:1.3;padding:14px;border-radius:12px;text-align:center}
+.urgent .bandeauUrgent{display:block}
+.tuile.urg{background:#b3261e}
 .ligne{display:flex;justify-content:space-between;align-items:center;font-size:20px;padding:10px 4px;border-bottom:2px solid var(--gris)}
 .ligne b{font-size:22px}
 .manque{color:var(--rouge);font-weight:800}
@@ -109,6 +113,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 <section class="ecran" id="chantier">
   <header><div class="petit" id="chDate"></div><div class="titre" id="chNom"></div></header>
   <main>
+    <div class="bandeauUrgent">🔴 DOSSIER URGENT<br><span style="font-size:17px;font-weight:600">À envoyer dès la fin du chantier</span></div>
     <div class="grille" id="grille"></div>
     <button class="envoyer" id="btnFin">CHANTIER TERMINÉ</button>
     <button class="discret" id="btnRetourAccueil">Autres chantiers</button>
@@ -199,6 +204,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 <section class="ecran" id="envoi">
   <header><div class="petit">Fin de chantier</div><div class="titre" id="envNom"></div></header>
   <main>
+    <div class="bandeauUrgent">🔴 DOSSIER URGENT : envoyez-le maintenant</div>
     <div id="recap"></div>
     <div class="note" id="envNote"></div>
     <button class="envoyer" id="btnEnvoyer">ENVOYER</button>
@@ -225,7 +231,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.16';
+const VERSION = '1.17';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -316,23 +322,25 @@ async function afficherAccueil(){
   const zone = $('listeChantiers'); zone.innerHTML = '';
   for (const c of liste){
     const b = document.createElement('button');
-    b.className = 'tuile' + (c.envoye ? ' fait' : '');
+    b.className = 'tuile' + (c.envoye ? ' fait' : (c.urgent ? ' urg' : ''));
     b.innerHTML = '<span></span><span class="nb"></span>';
     b.firstChild.textContent = c.nom;
-    b.lastChild.textContent = dateFR(c.date) + (c.envoye ? ' · envoyé' : ' · en cours');
+    b.lastChild.textContent = dateFR(c.date) + (c.envoye ? ' · envoyé' : (c.urgent ? ' · URGENT, à envoyer' : ' · en cours'));
     b.onclick = () => ouvrirChantier(c);
     zone.appendChild(b);
   }
   $('mailForeur').value = MAIL_FOREUR(); majMailEtat();
   $('version').textContent = 'Version ' + VERSION + (CLE() ? ' · reliée au bureau' : ' · PAS RELIÉE AU BUREAU');
+  document.body.classList.remove('urgent');
   montrer('accueil');
 }
-async function creerOuOuvrir(nomBrut, lienPlan){
+async function creerOuOuvrir(nomBrut, lienPlan, urgent){
   const nom = nettoyer(nomBrut); if (!nom) return;
   const liste = await tousChantiers();
   let c = liste.find(x => x.nom === nom && !x.envoye) || liste.find(x => x.nom === nom);
   if (!c) c = {id: Date.now().toString(36), nom, date: new Date().toISOString(), tarieres:0, penetros:0, envoye:false, implantation:{}};
   if (lienPlan) c.lienPT = lienPlan;
+  if (urgent) c.urgent = true;   // chantier marqué urgent depuis la boutique (lien d'agenda « u=1 »)
   await sauverChantier(c);
   ouvrirChantier(c);
 }
@@ -341,6 +349,7 @@ $('btnNouveau').onclick = () => { creerOuOuvrir($('nomChantier').value); $('nomC
 /* ---------- Écran chantier ---------- */
 async function ouvrirChantier(c){
   chantierCourant = c; c.implantation = c.implantation || {};
+  document.body.classList.toggle('urgent', !!c.urgent && !c.envoye);
   $('chNom').textContent = c.nom; $('chDate').textContent = 'Chantier du ' + dateFR(c.date);
   const photos = await photosDe(c.id), nb = {};
   photos.forEach(p => nb[p.cat] = (nb[p.cat] || 0) + 1);
@@ -1140,7 +1149,7 @@ async function envoyer(){
   c.lienEnvoi = lien; c.dateEnvoi = new Date().toISOString();
   $('btnPartagerLien').style.display = $('btnOuvrirLien').style.display = $('btnMailLien').style.display = 'block';
   if (mailOk || mailSecours || annonceOk){
-    c.envoye = true; await sauverChantier(c); attendreReseau = false;
+    c.envoye = true; await sauverChantier(c); attendreReseau = false; document.body.classList.remove('urgent');
     if (!mailOk){
       note('✔ Dossier en ligne et signalé au bureau' + (annonceOk ? ' (reçu sur l\'écran de contrôle du bureau)' : '') + '. Le mail automatique n\'a pas confirmé : par sécurité, touchez aussi ENVOYER LE DOSSIER PAR WHATSAPP / MAIL.', true);
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -1177,7 +1186,7 @@ $('btnSupprimer').onclick = () => choisir('Effacer ce chantier et toutes ses pho
     const p = new URL(url).searchParams, c = p.get('c');
     if (p.get('k')) { try { localStorage.setItem('cleBureau', p.get('k')); } catch (e) {} }
     if (p.get('k') || c) history.replaceState(null, '', location.pathname);
-    if (c){ couperCamera(); fermerFenetre(); await creerOuOuvrir(c, p.get('pt')); }
+    if (c){ couperCamera(); fermerFenetre(); await creerOuOuvrir(c, p.get('pt'), p.get('u') === '1'); }
     else if (demarrage) await afficherAccueil();
   };
   if ('launchQueue' in window) window.launchQueue.setConsumer(lp => { if (lp.targetURL && new URL(lp.targetURL).searchParams.get('c')) traiterLien(lp.targetURL, false); });
