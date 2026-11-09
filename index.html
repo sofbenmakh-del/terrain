@@ -231,7 +231,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.18';
+const VERSION = '1.19';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -418,11 +418,11 @@ function marquer(cv, gauche, droite){
   if (gauche) cadre(gauche, m, false);
   if (droite) cadre(droite, m, true);
 }
-async function enregistrer(source, cat, max, sansMarque){
+async function enregistrer(source, cat, max, sansMarque, fige){
   const cv = await versCanvas(source, max || TAILLE_MAX);
   let prof = null, marque = false;
-  if (estTariere(cat) && etiquetteActive && !sansMarque){
-    prof = (chantierCourant.profondeurs || {})[cat]; prof = prof == null ? null : prof; marque = true;
+  if (estTariere(cat) && (fige ? fige.etiq : etiquetteActive) && !sansMarque){
+    prof = fige ? fige.prof : (chantierCourant.profondeurs || {})[cat]; prof = prof == null ? null : prof; marque = true;
     marquer(cv, cat, prof == null ? '' : formatProf(prof));
   }
   const blob = await enJpeg(cv);
@@ -529,28 +529,32 @@ $('btnObjectif').onclick = async () => {
   } catch (e) { alert('Changement d\'objectif impossible sur ce téléphone.'); }
 };
 function couperCamera(){ if (flux){ flux.getTracks().forEach(t => t.stop()); flux = null; } $('video').srcObject = null; }
-let enCours = false;
-$('declencheur').onclick = async () => {
-  if (enCours || !flux) return; enCours = true;
+// Déclenchement instantané : l'image est figée au moment de l'appui, l'enregistrement se fait derrière (file d'attente)
+let fileAttente = Promise.resolve(), enAttente = 0;
+$('declencheur').onclick = () => {
+  const v = $('video');
+  if (!flux || !v.videoWidth) return;
+  const k = Math.min(1, TAILLE_MAX / Math.max(v.videoWidth, v.videoHeight));
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(v.videoWidth * k); cv.height = Math.round(v.videoHeight * k);
+  cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height);
   const f = $('flash'); f.classList.add('on'); vibrer(); setTimeout(() => f.classList.remove('on'), 60);
-  try {
-    let source = null;
-    const piste = flux.getVideoTracks()[0];
-    if (window.ImageCapture){
-      try { source = await Promise.race([new ImageCapture(piste).takePhoto(), new Promise((_, ko) => setTimeout(ko, 4000))]); } catch (e) { source = null; }
-    }
-    if (!source){
-      const v = $('video'), cv = document.createElement('canvas');
-      cv.width = v.videoWidth; cv.height = v.videoHeight;
-      cv.getContext('2d').drawImage(v, 0, 0); source = cv;
-    }
-    await enregistrer(source, catCourante);
-    await majCamera();
-  } catch (e) { alert('Photo non enregistrée : ' + e.message); }
-  enCours = false;
+  const cat = catCourante, fige = {etiq: etiquetteActive, prof: (chantierCourant.profondeurs || {})[cat]};
+  try {   // vignette tout de suite
+    const mini = document.createElement('canvas'), km = 160 / Math.max(cv.width, cv.height);
+    mini.width = Math.round(cv.width * km); mini.height = Math.round(cv.height * km);
+    mini.getContext('2d').drawImage(cv, 0, 0, mini.width, mini.height);
+    const vg = $('vignette'); if (vg.src && vg.src.startsWith('blob:')) URL.revokeObjectURL(vg.src);
+    vg.src = mini.toDataURL('image/jpeg', 0.7); vg.style.display = 'block';
+  } catch (e) {}
+  enAttente++;
+  const b = $('btnCamPhotos'), nb = parseInt((b.textContent.match(/\d+/) || ['0'])[0], 10) + 1; b.textContent = 'PHOTOS (' + nb + ')';
+  fileAttente = fileAttente.then(() => enregistrer(cv, cat, null, false, fige))
+    .catch(e => alert('Photo non enregistrée : ' + e.message))
+    .then(() => { enAttente--; if (!enAttente && cat === catCourante && $('camera').classList.contains('actif')) majCamera(); });
 };
-$('btnCamRetour').onclick = () => { couperCamera(); ouvrirChantier(chantierCourant); };
-$('btnCamPhotos').onclick = () => { couperCamera(); ouvrirGalerie(catCourante, 'camera'); };
+$('btnCamRetour').onclick = async () => { couperCamera(); await fileAttente; ouvrirChantier(chantierCourant); };
+$('btnCamPhotos').onclick = async () => { couperCamera(); await fileAttente; ouvrirGalerie(catCourante, 'camera'); };
 $('fichierPhoto').onchange = async e => { for (const f of e.target.files) await enregistrer(f, catCourante); e.target.value = ''; ouvrirChantier(chantierCourant); };
 
 /* ---------- Galerie : voir et supprimer n'importe quelle photo ---------- */
