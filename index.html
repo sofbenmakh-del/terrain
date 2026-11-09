@@ -231,7 +231,7 @@ p{margin:0;font-size:19px;line-height:1.35}
 
 <script>
 'use strict';
-const VERSION = '1.17';
+const VERSION = '1.18';
 const DESTINATAIRE = 'kaliforageingenierie@gmail.com';
 const TAILLE_MAX = 2048, QUALITE = 0.82;
 const RAISONS = ['Obstacle', 'Réseau enterré', 'Accès impossible', 'Refus, sondage décalé', 'Demande du client'];
@@ -1191,6 +1191,19 @@ $('btnSupprimer').onclick = () => choisir('Effacer ce chantier et toutes ses pho
   };
   if ('launchQueue' in window) window.launchQueue.setConsumer(lp => { if (lp.targetURL && new URL(lp.targetURL).searchParams.get('c')) traiterLien(lp.targetURL, false); });
   await traiterLien(location.href, true);
+  // Garde-fou : ré-annonce au bureau des dossiers envoyés depuis moins de 70 h (au plus toutes les 6 h),
+  // pour qu'ils restent visibles sur la page bureau même si elle n'a pas été ouverte dans les 12 h.
+  try {
+    const cle = CLE(), maint = Date.now();
+    if (cle) for (const c of await tousChantiers()){
+      if (!c.lienEnvoi || !c.dateEnvoi) continue;
+      const age = maint - new Date(c.dateEnvoi).getTime();
+      if (age > 70 * 3600e3 || (c.reannonce && maint - c.reannonce < 6 * 3600e3)) continue;
+      fetch('https://ntfy.sh/', {method: 'POST', body: JSON.stringify({topic: cle, title: 'Chantier ' + c.nom + ' du ' + dateFR(c.date),
+        message: '(rappel) envoyé le ' + new Date(c.dateEnvoi).toLocaleString('fr-FR') + '\n' + c.lienEnvoi, click: c.lienEnvoi, tags: ['package']})})
+        .then(r => { if (r.ok){ c.reannonce = Date.now(); sauverChantier(c); } }).catch(() => {});
+    }
+  } catch (e) {}
 })();
 </script>
 </body>

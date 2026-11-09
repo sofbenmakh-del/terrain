@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta http-equiv="Cache-Control" content="no-store">
 <title>Bureau - chantiers reçus</title>
 <style>
 :root{--bleu:#0b4f5c;--vert:#1f8a4c;--orange:#d9730d;--rouge:#b3261e;--fond:#f4f6f5}
@@ -12,65 +13,120 @@ header{background:var(--bleu);color:#fff;padding:16px 24px;display:flex;justify-
 header h1{margin:0;font-size:24px}
 main{max-width:980px;margin:0 auto;padding:20px 16px}
 .etat{font-size:15px;margin-bottom:14px}
+.etat.ko{color:var(--rouge);font-weight:700}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
 th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #dde5e3;font-size:16px;vertical-align:middle}
 th{background:#e8f1f0;color:var(--bleu)}
-a.btn,button{display:inline-block;background:var(--vert);color:#fff;text-decoration:none;font-weight:700;padding:8px 14px;border-radius:6px;border:0;font:inherit;font-weight:700;cursor:pointer}
+tr.neuf td{background:#eaf6ee}
+a.btn,button{display:inline-block;background:var(--vert);color:#fff;text-decoration:none;font:inherit;font-weight:700;padding:8px 14px;border-radius:6px;border:0;cursor:pointer}
 button.sec{background:#fff;color:var(--bleu);border:2px solid var(--bleu)}
 .exp{color:var(--rouge);font-weight:700}
 .vide{padding:30px;text-align:center;color:#666;background:#fff;border-radius:8px}
+.bloc{background:#fff;border-radius:8px;padding:14px 16px;margin-top:18px}
+.bloc h2{margin:0 0 8px;font-size:17px;color:var(--bleu)}
+.bloc input{font:inherit;padding:8px;width:min(560px,100%);border:2px solid #c9d2d0;border-radius:6px}
+.diag{font-family:Consolas,monospace;font-size:13px;white-space:pre-wrap;color:#333}
 .note{font-size:14px;color:#555;margin-top:16px;line-height:1.5}
 </style>
 </head>
 <body>
-<header><h1>Chantiers reçus de l'appli terrain</h1><button class="sec" id="btnMaj" style="background:#fff">Actualiser</button></header>
+<header><h1>Chantiers reçus de l'appli terrain</h1><button class="sec" id="btnMaj">Actualiser</button></header>
 <main>
   <div class="etat" id="etat">Chargement…</div>
   <div id="liste"></div>
-  <p class="note">Chaque envoi du foreur apparaît ici, même si le mail n'est pas arrivé. Le lien de téléchargement reste valable 72 h après l'envoi : passé ce délai, demandez au foreur de retoucher ENVOYER (ses photos restent dans son téléphone).<br>
-  Le serveur d'annonce garde les envois 12 h : ouvrez cette page au moins une fois par jour, elle conserve ensuite tout l'historique sur ce PC.<br>
+
+  <div class="bloc">
+    <h2>Ajouter un lien reçu par mail ou WhatsApp</h2>
+    <p style="margin:0 0 8px;font-size:14px">Si un dossier n'apparaît pas ci-dessus, collez ici le lien reçu (litter.catbox.moe ou gofile.io) : il est rangé dans la liste et gardé sur ce PC.</p>
+    <input id="lienManuel" placeholder="https://litter.catbox.moe/xxxxxx.zip"> <input id="nomManuel" placeholder="Nom du chantier (facultatif)" style="width:min(260px,100%)">
+    <button id="btnAjout">Ajouter</button>
+  </div>
+
+  <div class="bloc">
+    <h2>Diagnostic</h2>
+    <div class="diag" id="diag">—</div>
+  </div>
+
+  <p class="note">Chaque envoi du foreur apparaît ici, même si le mail n'est pas arrivé. Un lien de téléchargement reste valable 72 h après l'envoi : passé ce délai, demandez au foreur de retoucher ENVOYER (ses photos restent dans son téléphone).<br>
+  Le serveur d'annonce garde les envois 12 h, et l'appli du foreur les ré-annonce à chaque ouverture pendant 3 jours. Ouvrez cette page au moins une fois par jour : elle conserve ensuite tout l'historique sur ce PC.<br>
   Page légère : quelques Ko par actualisation, rien n'est téléchargé tant que vous ne cliquez pas.</p>
 </main>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
-const cle = new URLSearchParams(location.search).get('k') || (() => { try { return localStorage.getItem('cleBureau') || ''; } catch (e) { return ''; } })();
-try { if (cle) localStorage.setItem('cleBureau', cle); } catch (e) {}
+let cle = new URLSearchParams(location.search).get('k') || '';
+try { cle = cle || localStorage.getItem('cleBureau') || ''; if (cle) localStorage.setItem('cleBureau', cle); } catch (e) {}
 const lireArchive = () => { try { return JSON.parse(localStorage.getItem('archiveEnvois') || '{}'); } catch (e) { return {}; } };
-const ecrireArchive = a => { try { localStorage.setItem('archiveEnvois', JSON.stringify(a)); } catch (e) {} };
+const ecrireArchive = a => { try { localStorage.setItem('archiveEnvois', JSON.stringify(a)); return true; } catch (e) { return false; } };
+// une entrée par lien de téléchargement (les ré-annonces ne créent pas de doublon)
+function ranger(archive, e){
+  const k = e.lien; const avant = archive[k];
+  archive[k] = {time: avant ? Math.min(avant.time, e.time) : e.time, titre: (avant && avant.titre) || e.titre || 'Chantier', details: (avant && avant.details) || (/^\(rappel\)/.test(e.details || '') ? '' : e.details) || '', lien: e.lien, source: avant ? avant.source : e.source};
+  return !avant;
+}
+function migrer(archive){   // anciennes entrées rangées par identifiant de message
+  const n = {}; for (const e of Object.values(archive)) if (e && e.lien) ranger(n, e); return n;
+}
+let nouveaux = new Set();
 function afficher(archive){
   const l = Object.values(archive).sort((a, b) => b.time - a.time);
   if (!l.length){ $('liste').innerHTML = '<div class="vide">Aucun envoi reçu pour l\'instant.</div>'; return; }
   const t = document.createElement('table');
   t.innerHTML = '<tr><th>Reçu le</th><th>Chantier</th><th>Contenu</th><th></th></tr>';
   for (const e of l){
-    const tr = document.createElement('tr'), age = Date.now() / 1000 - e.time, expire = age > 72 * 3600;
-    const d = new Date(e.time * 1000).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'});
+    const tr = document.createElement('tr'), expire = Date.now() / 1000 - e.time > 72 * 3600;
+    if (nouveaux.has(e.lien)) tr.className = 'neuf';
     tr.innerHTML = '<td></td><td><b></b></td><td></td><td></td>';
-    tr.children[0].textContent = d; tr.children[1].firstChild.textContent = e.titre; tr.children[2].textContent = e.details;
-    if (expire){ tr.children[3].innerHTML = '<span class="exp">Lien expiré</span>'; }
-    else { const a = document.createElement('a'); a.className = 'btn'; a.href = e.lien; a.textContent = 'Télécharger'; a.target = '_blank'; a.rel = 'noopener'; tr.children[3].appendChild(a); }
+    tr.children[0].textContent = new Date(e.time * 1000).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'});
+    tr.children[1].firstChild.textContent = e.titre; tr.children[2].textContent = e.details + (e.source === 'manuel' ? ' (ajout manuel)' : '');
+    const a = document.createElement('a'); a.className = 'btn'; a.href = e.lien; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = expire ? 'Essayer (sans doute expiré)' : 'Télécharger';
+    if (expire){ a.style.background = '#8a8a8a'; }
+    tr.children[3].appendChild(a);
     t.appendChild(tr);
   }
   $('liste').innerHTML = ''; $('liste').appendChild(t);
 }
 async function actualiser(){
-  const archive = lireArchive(); afficher(archive);
-  if (!cle){ $('etat').textContent = 'Clé manquante : ouvrez cette page avec le lien complet fourni (…bureau.html?k=…).'; return; }
+  let archive = migrer(lireArchive()); afficher(archive);
+  if (!cle){ $('etat').className = 'etat ko'; $('etat').textContent = 'Clé manquante : ouvrez cette page avec le lien complet (…bureau.html?k=…). Historique local affiché.'; $('diag').textContent = 'Clé du canal : absente'; return; }
+  const d = ['Clé du canal : ' + cle.slice(0, 14) + '…', 'Navigateur : ' + navigator.userAgent.split(') ')[0] + ')'];
+  const t0 = Date.now();
   try {
-    const r = await fetch('https://ntfy.sh/' + encodeURIComponent(cle) + '/json?poll=1&since=all');
-    const txt = await r.text(); let n = 0;
+    // no-store + paramètre unique : jamais de réponse resservie par le cache du navigateur
+    const r = await fetch('https://ntfy.sh/' + encodeURIComponent(cle) + '/json?poll=1&since=all&_=' + Date.now(), {cache: 'no-store'});
+    const txt = await r.text(); let surServeur = 0; const neufs = [];
     for (const ligne of txt.split('\n')){
       if (!ligne.trim()) continue;
       let m; try { m = JSON.parse(ligne); } catch (e) { continue; }
-      if (m.event !== 'message' || !m.click) continue;
-      if (!archive[m.id]) n++;
-      archive[m.id] = {time: m.time, titre: m.title || 'Chantier', details: (m.message || '').split('\n')[0], lien: m.click};
+      if (m.event !== 'message') continue;
+      const lien = m.click || ((m.message || '').match(/https?:\/\/\S+/) || [])[0];
+      if (!lien) continue;
+      surServeur++;
+      if (ranger(archive, {time: m.time, titre: m.title, details: (m.message || '').split('\n')[0], lien, source: 'serveur'})) neufs.push(m.title);
     }
-    ecrireArchive(archive); afficher(archive);
-    $('etat').textContent = 'Dernière vérification : ' + new Date().toLocaleTimeString('fr-FR') + (n ? ' — ' + n + ' nouvel(s) envoi(s).' : '') + ' Actualisation automatique toutes les 5 minutes.';
-  } catch (e) { $('etat').textContent = 'Serveur d\'annonce injoignable (' + e.message + '). Historique local affiché.'; }
+    neufs.forEach(() => {}); nouveaux = new Set(Object.values(archive).filter(e => neufs.length && Date.now() / 1000 - e.time < 86400 && neufs.includes(e.titre)).map(e => e.lien));
+    const ok = ecrireArchive(archive); afficher(archive);
+    $('etat').className = 'etat';
+    $('etat').textContent = 'Dernière vérification : ' + new Date().toLocaleTimeString('fr-FR') + (neufs.length ? ' — ' + neufs.length + ' nouvel(s) envoi(s) (surligné(s) en vert).' : ' — rien de nouveau.') + ' Actualisation automatique toutes les 5 minutes.';
+    d.push('Serveur d\'annonce : joignable (HTTP ' + r.status + ', ' + (Date.now() - t0) + ' ms)',
+           'Envois présents sur le serveur (12 dernières heures) : ' + surServeur,
+           'Nouveaux à cette vérification : ' + neufs.length + (neufs.length ? ' → ' + neufs.join(' ; ') : ''),
+           'Historique enregistré sur ce PC : ' + Object.keys(archive).length + ' dossier(s)' + (ok ? '' : ' — ⚠ ENREGISTREMENT IMPOSSIBLE (navigation privée ?)'));
+  } catch (e) {
+    $('etat').className = 'etat ko';
+    $('etat').textContent = 'Serveur d\'annonce injoignable (' + e.message + ') : historique local affiché. Vérifiez la connexion, puis Actualiser. Les liens reçus par mail restent utilisables (ajout manuel ci-dessous).';
+    d.push('Serveur d\'annonce : INJOIGNABLE (' + e.message + ')', 'Historique enregistré sur ce PC : ' + Object.keys(archive).length + ' dossier(s)');
+  }
+  $('diag').textContent = d.join('\n');
 }
+$('btnAjout').onclick = () => {
+  const lien = ($('lienManuel').value || '').trim();
+  if (!/^https?:\/\/\S+$/.test(lien)){ alert('Collez un lien complet (https://…).'); return; }
+  const a = migrer(lireArchive());
+  ranger(a, {time: Math.floor(Date.now() / 1000), titre: ($('nomManuel').value || '').trim() || 'Ajout manuel', details: '', lien, source: 'manuel'});
+  ecrireArchive(a); $('lienManuel').value = ''; $('nomManuel').value = ''; afficher(a);
+};
 $('btnMaj').onclick = actualiser;
 actualiser(); setInterval(actualiser, 5 * 60 * 1000);
 </script>
